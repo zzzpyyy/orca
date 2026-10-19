@@ -21,6 +21,7 @@ export abstract class BrowserManagerGuestNavigationPolicy extends BrowserManager
       if (!normalizeBrowserNavigationUrl(url)) {
         // Why: will-attach-webview only validates the initial src; keep enforcing the allowlist on later navs.
         event.preventDefault()
+        this.requestExternalAppLaunch(guest, url)
         return false
       }
       return true

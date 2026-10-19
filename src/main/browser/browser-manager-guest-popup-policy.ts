@@ -15,6 +15,7 @@ import {
   isNativeBrowserPopupRequest
 } from './browser-popup-native-window'
 import { isBrowserRouteGuestPopup } from './browser-route-guest-popup-ownership'
+import { requestBrowserExternalAppLaunch } from './browser-external-app-launch'
 
 export abstract class BrowserManagerGuestPopupPolicy extends BrowserManagerNavigation {
   protected installGuestPopupPolicy(guest: Electron.WebContents): () => void {
@@ -115,7 +116,7 @@ export abstract class BrowserManagerGuestPopupPolicy extends BrowserManagerNavig
           origin: safeOrigin(externalUrl),
           action: 'opened-external'
         })
-      } else {
+      } else if (!this.requestExternalAppLaunch(guest, url)) {
         // Why: popup URLs can carry auth redirects/one-time tokens; surface only sanitized origin metadata.
         this.forwardOrQueuePopupEvent(guest.id, {
           origin: safeOrigin(url),
@@ -133,6 +134,19 @@ export abstract class BrowserManagerGuestPopupPolicy extends BrowserManagerNavig
         // guest may already be destroyed
       }
     }
+  }
+
+  /** Every route from a page into another app ends here, so they all share one prompt. */
+  requestExternalAppLaunch(
+    guest: Electron.WebContents,
+    rawUrl: string | undefined,
+    requestingUrl?: string
+  ): boolean {
+    return requestBrowserExternalAppLaunch({
+      context: this.getRendererContextForGuest(guest.id),
+      rawUrl,
+      requestingUrl: () => requestingUrl ?? guest.getURL()
+    })
   }
 
   /** The tab loads the URL itself, so Chromium's page ends before its first request. */

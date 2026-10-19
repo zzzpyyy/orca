@@ -42,6 +42,7 @@ vi.mock('./popup-origin-bar-window', () => ({
 }))
 
 import { browserManager } from './browser-manager'
+import { respondToBrowserExternalAppRequest } from './browser-external-app-launch'
 import {
   MAX_PAGE_INITIATED_TABS_PER_WINDOW,
   PAGE_INITIATED_TAB_WINDOW_MS
@@ -725,6 +726,62 @@ describe('browserManager', () => {
       origin: 'null',
       action: 'blocked'
     })
+  })
+
+  it('asks before a page hands a link to another app, from window.open or a navigation', () => {
+    const rendererSendMock = vi.fn()
+    const guest = {
+      id: 107,
+      isDestroyed: vi.fn(() => false),
+      getType: vi.fn(() => 'webview'),
+      getURL: vi.fn(() => 'https://acme.okta.com/signin'),
+      setBackgroundThrottling: guestSetBackgroundThrottlingMock,
+      setWindowOpenHandler: guestSetWindowOpenHandlerMock,
+      on: guestOnMock,
+      prependListener: vi.fn(),
+      off: guestOffMock,
+      openDevTools: guestOpenDevToolsMock
+    }
+    const renderer = { id: rendererWebContentsId, isDestroyed: () => false, send: rendererSendMock }
+    shellOpenExternalMock.mockResolvedValue(undefined)
+    webContentsFromIdMock.mockImplementation((id: number) =>
+      id === guest.id ? guest : id === rendererWebContentsId ? renderer : null
+    )
+    browserManager.attachGuestPolicies(guest as never)
+    browserManager.registerGuest({
+      browserPageId: 'browser-1',
+      webContentsId: guest.id,
+      rendererWebContentsId
+    })
+    const promptedRequestIds = (): string[] =>
+      rendererSendMock.mock.calls
+        .filter(([channel]) => channel === 'browser:external-app-requested')
+        .map(([, request]) => request.requestId)
+
+    const windowOpenHandler = guestSetWindowOpenHandlerMock.mock.calls[0][0]
+    expect(windowOpenHandler({ url: 'mailto:help@example.com' })).toEqual({ action: 'deny' })
+    expect(rendererSendMock).toHaveBeenCalledWith('browser:external-app-requested', {
+      requestId: expect.any(String),
+      appName: null,
+      scheme: 'mailto',
+      origin: 'https://acme.okta.com'
+    })
+    expect(rendererSendMock).not.toHaveBeenCalledWith('browser:popup', expect.anything())
+    respondToBrowserExternalAppRequest(webContentsFromIdMock(rendererWebContentsId), {
+      requestId: promptedRequestIds()[0],
+      open: false
+    })
+    expect(shellOpenExternalMock).not.toHaveBeenCalled()
+
+    const willNavigate = guestOnMock.mock.calls.find(([event]) => event === 'will-navigate')?.[1]
+    const preventDefault = vi.fn()
+    willNavigate({ preventDefault }, 'zoommtg://zoom.us/join?confno=1')
+    expect(preventDefault).toHaveBeenCalledTimes(1)
+    respondToBrowserExternalAppRequest(webContentsFromIdMock(rendererWebContentsId), {
+      requestId: promptedRequestIds()[1],
+      open: true
+    })
+    expect(shellOpenExternalMock).toHaveBeenCalledWith('zoommtg://zoom.us/join?confno=1')
   })
 
   it('falls back to opening popup URLs externally before a guest is registered', () => {

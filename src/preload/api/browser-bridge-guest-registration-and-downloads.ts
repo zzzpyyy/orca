@@ -4,6 +4,10 @@ import type {
   BrowserWebAuthnAccountRequest,
   BrowserWebAuthnAccountResponse
 } from '../../shared/browser-webauthn-account'
+import type {
+  BrowserExternalAppRequest,
+  BrowserExternalAppResponse
+} from '../../shared/browser-external-app'
 import { readBrowserClientHostIdArgument } from '../../shared/browser-client-host-id-argument'
 import { browserClientPageRendererRequests } from '../preload-runtime-support'
 import type { PreloadApi } from '../api-types'
@@ -49,6 +53,22 @@ export const browserGuestRegistrationAndDownloadsApi = {
   },
   respondWebAuthnAccount: (response: BrowserWebAuthnAccountResponse): Promise<boolean> =>
     ipcRenderer.invoke('browser:respondWebAuthnAccount', response),
+  onExternalAppRequest: (callback: (request: BrowserExternalAppRequest) => void): (() => void) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      request: BrowserExternalAppRequest
+    ): void => callback(request)
+    ipcRenderer.on('browser:external-app-requested', listener)
+    return () => ipcRenderer.removeListener('browser:external-app-requested', listener)
+  },
+  onExternalAppRequestClosed: (callback: (event: { requestId: string }) => void): (() => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, data: { requestId: string }): void =>
+      callback(data)
+    ipcRenderer.on('browser:external-app-request-closed', listener)
+    return () => ipcRenderer.removeListener('browser:external-app-request-closed', listener)
+  },
+  respondExternalApp: (response: BrowserExternalAppResponse): Promise<boolean> =>
+    ipcRenderer.invoke('browser:respondExternalApp', response),
   openDevTools: (args: { browserPageId: string }): Promise<boolean> =>
     ipcRenderer.invoke('browser:openDevTools', args),
   setViewportOverride: (args: {
