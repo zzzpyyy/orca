@@ -2,11 +2,8 @@
 // its turn runs the card is edited in place, at most once per gap, and the reply outbox writes the
 // final words into it. A follow-up the turn took in is told which message answers it.
 import type { FeishuLocalState } from '../../shared/bots/feishu-local'
-import {
-  watchImDeliveryTurns,
-  type ImDeliveryTurn,
-  type ImStreamJournal
-} from '../im-stream/im-stream-delivery-turn'
+import { watchImDeliveryTurns, type ImDeliveryTurn } from '../im-stream/im-stream-delivery-turn'
+import type { ImJournal } from '../im-stream/im-stream-follow'
 import { ImLiveStream } from '../im-stream/im-stream-live'
 import { readImTurnView } from '../im-stream/im-stream-turn-view'
 import type { Binding } from './feishu-binding'
@@ -38,7 +35,7 @@ export class FeishuStream {
       inbox: FeishuStore
       binding: Binding
       signal: AbortSignal
-      journal: () => ImStreamJournal | undefined
+      journal: () => ImJournal | undefined
       linkedSession: () => string | null
       changed: () => void
     }

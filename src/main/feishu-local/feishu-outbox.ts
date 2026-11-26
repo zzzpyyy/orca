@@ -1,7 +1,8 @@
 import type { ConnectorReplyJournal } from '../connector-cloud/connector-reply-outbox'
 import { outcomeSentence } from '../connector-cloud/connector-reply-outcome-sentence'
 import type { JournalConnectorReplyRow } from '../../shared/agent-session/journal/journal-connector-reply'
-import { splitImText } from '../im-stream/im-stream-chunks'
+import { imAnswerText } from '../im-stream/im-stream-mask'
+import { splitImText } from '../im-stream/im-stream-parts'
 import { dmKey, type Binding } from './feishu-binding'
 import { FEISHU_ANSWER_BYTES, feishuFinalCard, feishuJoinedCard } from './feishu-card'
 import { FeishuApiError, FeishuPermissionDenied, FeishuReplyTargetGone } from './feishu-cli'
@@ -22,6 +23,7 @@ export type FeishuReplyCards = Pick<FeishuStream, 'cardOf' | 'finish' | 'patch' 
 
 // The card can't take this edit, ever: not a card, too long, malformed, or past its edit window.
 const CARD_REFUSED = new Set([230001, 230025, 230031, 230099])
+const FEISHU_LIMIT = { maxBytes: FEISHU_ANSWER_BYTES }
 
 function cardRefused(error: unknown): boolean {
   return (
@@ -128,13 +130,16 @@ export async function drainFeishuOutbox(
         return
       }
     }
-    const text = fill.prose || outcomeSentence(fill.outcome, 'Orca', fill.toolsRan)
+    // Masked as its live card was, so the final shows no key the card hid.
+    const text = fill.prose
+      ? imAnswerText(fill.prose)
+      : outcomeSentence(fill.outcome, 'Orca', fill.toolsRan)
     const also = await inbox.mergedExcerpts(b.account, mid)
-    const [first = '', ...rest] = splitImText(text, FEISHU_ANSWER_BYTES)
+    const [first = '', ...rest] = splitImText(text, FEISHU_LIMIT)
     // A card that took its final words owes only the parts after them.
     const carded =
       (await inbox.card(b.account, mid))?.progress === 3 || (await finalCard(first, also))
-    const parts = carded ? rest : splitImText(alsoAnswers(text, also), FEISHU_ANSWER_BYTES)
+    const parts = carded ? rest : splitImText(alsoAnswers(text, also), FEISHU_LIMIT)
     for (const [index, part] of parts.entries()) {
       const at = carded ? index + 1 : index
       await reply(finalFeishuMessage(part), at === 0 ? 'final' : `cont-${at}`)

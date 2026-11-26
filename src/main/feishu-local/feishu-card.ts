@@ -1,9 +1,8 @@
 // The Feishu card a DM's reply streams into (JSON 2.0): the turn's thinking and steps in a panel,
 // open while it runs and folded once it ends, and the answer below. Process text is plain_text, so
 // nothing a command or a thought holds renders as markdown.
-import { IM_SHOWN_STEPS, IM_THINKING_CHARS } from '../im-stream/im-stream-live'
-import { maskImText, type ImStep } from '../im-stream/im-stream-step'
-import type { ImTurnView } from '../im-stream/im-stream-turn-view'
+import { IM_STEP_MARK, imProgress, imTail } from '../im-stream/im-stream-progress'
+import { EMPTY_IM_TURN_VIEW, type ImTurnView } from '../im-stream/im-stream-turn-view'
 import { clampUtf8TextPrefix } from '../../shared/text/utf8-byte-limits'
 
 /** Answer bytes per card or continuation: within Feishu's documented 30 KB card content, with room
@@ -13,8 +12,6 @@ export const FEISHU_ANSWER_BYTES = 20 * 1024
 export type FeishuProcess = Pick<ImTurnView, 'thinking' | 'steps'>
 export type FeishuCard = { schema: '2.0'; config: unknown; body: { elements: unknown[] } }
 
-const MARK: Record<ImStep['state'], string> = { running: '⏳', done: '✅', failed: '❌' }
-
 function plain(content: string, grey = false) {
   return {
     tag: 'div',
@@ -22,18 +19,19 @@ function plain(content: string, grey = false) {
   }
 }
 
-function tail(text: string, max: number): string {
-  const line = text.replace(/\s+/g, ' ').trim()
-  return line.length <= max ? line : `…${line.slice(line.length - max + 1).trimStart()}`
-}
-
 function processPanel(process: FeishuProcess | null, running: boolean): unknown[] {
-  const thinking = process ? tail(maskImText(process.thinking), IM_THINKING_CHARS) : ''
+  // A final card's process is its thinking and steps alone; the view masked both already.
+  const {
+    thinking,
+    steps: shown,
+    earlierSteps
+  } = process
+    ? imProgress({ ...EMPTY_IM_TURN_VIEW, ...process })
+    : { thinking: '', steps: [], earlierSteps: 0 }
   const steps = process?.steps ?? []
-  const shown = steps.slice(-IM_SHOWN_STEPS)
-  const lines = shown.map((step) => `${MARK[step.state]} ${step.summary}`)
-  if (steps.length > shown.length) {
-    lines.unshift(`… ${steps.length - shown.length} earlier steps`)
+  const lines = shown.map((step) => `${IM_STEP_MARK[step.state]} ${step.summary}`)
+  if (earlierSteps > 0) {
+    lines.unshift(`… ${earlierSteps} earlier steps`)
   }
   if (!thinking && lines.length === 0) {
     return []
@@ -70,7 +68,7 @@ function alsoLine(also: readonly string[]): unknown[] {
 function card(summary: string, elements: unknown[]): FeishuCard {
   return {
     schema: '2.0',
-    config: { update_multi: true, summary: { content: tail(summary, 60) } },
+    config: { update_multi: true, summary: { content: imTail(summary, 60) } },
     body: { elements }
   }
 }
