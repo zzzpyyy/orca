@@ -61,8 +61,10 @@ export function ChatBadgedIcon({ chat }: { chat: LeadingChat }) {
 const SOURCE_SIZE = 14
 const LUCIDE_SIZE = 15
 
-function isSource(origin: BotChatTreeChat['origin']): origin is SuggestionSource {
-  return origin === 'slack' || origin === 'linear' || origin === 'github'
+function isSource(origin: BotChatTreeChat['origin']): origin is SuggestionSource | 'wecom-local' {
+  return (
+    origin === 'slack' || origin === 'linear' || origin === 'github' || origin === 'wecom-local'
+  )
 }
 // The badge sits 2 pt past the icon's corner, with a 1 pt gap cut around it.
 const WORKING_BADGE_SIZE = 7
@@ -109,6 +111,7 @@ function ChatIcon({ chat, badgeSize }: { chat: LeadingChat; badgeSize?: number }
     case 'slack':
     case 'linear':
     case 'github':
+    case 'wecom-local':
       return (
         <MobileConnectorSourceIcon source={chat.origin} mask={mask}>
           {defs}
@@ -147,9 +150,11 @@ export function useMobileBotChatLabel(chat: LeadingChat, title: string): string 
           ? t('bots.chats.kindLinear', 'Linear issue')
           : chat.origin === 'github'
             ? t('bots.chats.kindGithub', 'GitHub thread')
-            : chat.origin === 'automation'
-              ? t('bots.chats.kindAutomation', 'Automation run')
-              : t('bots.chats.kindSide', 'Side chat')
+            : chat.origin === 'wecom-local'
+              ? t('bots.wecom.chat', 'WeCom chat')
+              : chat.origin === 'automation'
+                ? t('bots.chats.kindAutomation', 'Automation run')
+                : t('bots.chats.kindSide', 'Side chat')
   const state =
     chat.live === 'replying'
       ? t('bots.chats.replyingState', 'Replying')

@@ -7,12 +7,19 @@ import { DiscordIcon } from '../icons/DiscordIcon'
 import { GitHubIcon } from '../icons/GitHubIcon'
 import { LinearIcon } from '../icons/LinearIcon'
 import { SlackIcon } from '../icons/SlackIcon'
+import { WecomIcon } from '../icons/WecomIcon'
 import { connectorAskerTagView } from '../../../../shared/connectors/connector-message-asker-view'
 import type { ConnectorMessageAsker } from '../../../../shared/connector-message-asker'
 
 export const CONNECTOR_SOURCE_ICONS: Partial<
   Record<ConnectorMessageAsker['source'], ComponentType<{ className?: string }>>
-> = { slack: SlackIcon, github: GitHubIcon, linear: LinearIcon, discord: DiscordIcon }
+> = {
+  slack: SlackIcon,
+  github: GitHubIcon,
+  linear: LinearIcon,
+  discord: DiscordIcon,
+  'wecom-local': WecomIcon
+}
 
 /** "Sam Lee · Slack" over a message Orca delivered from a connector; opens where it was written. */
 export function NativeChatConnectorAskerTag({

@@ -1,4 +1,6 @@
 // Who can ask the bot, every connector at once: each Slack workspace, Linear workspace and GitHub org's own whole list.
+import { useTranslate } from '@/i18n/use-translate'
+import { WecomIcon } from '../../icons/WecomIcon'
 import type { Bot, BotLinear } from '../../../../../shared/bot-types'
 import type { ConnectorGitHubInstallation } from '../../../../../shared/connector-bot-github-contract'
 import { BotNoConnectors } from '../../settings/bots/BotConnectorsSection'
@@ -74,8 +76,29 @@ function GitHubPeople({
   )
 }
 
+/** WeCom answers only its paired owner, so there is no list to keep. */
+function WecomPeople(): React.JSX.Element {
+  const t = useTranslate()
+  return (
+    <section className="flex min-w-0 flex-col gap-2">
+      <h3 className="flex items-center gap-2 px-1 text-xs font-medium text-muted-foreground">
+        <WecomIcon className="size-3.5 shrink-0" />
+        <span className="min-w-0 truncate">{t('bots.wecom.name', 'WeCom')}</span>
+      </h3>
+      <p className="rounded-[10px] bg-foreground/[0.035] p-3 text-sm">
+        {t(
+          'bots.wecom.who',
+          'Only you can ask, from the direct message and groups you paired with a code.'
+        )}
+      </p>
+    </section>
+  )
+}
+
 export function BotWhoCanAskPage({ bot }: { bot: Bot }): React.JSX.Element {
-  const entries = useBotConnectorEntries(bot).filter(
+  const all = useBotConnectorEntries(bot)
+  const wecom = all.some((entry) => entry.kind === 'wecom-local')
+  const entries = all.filter(
     (entry): entry is PeopleEntry =>
       entry.kind === 'slack' || entry.kind === 'linear' || entry.kind === 'github'
   )
@@ -84,7 +107,7 @@ export function BotWhoCanAskPage({ bot }: { bot: Bot }): React.JSX.Element {
     bot.hostId === LOCAL_EXECUTION_HOST_ID && pairedServerAsksOn() ? (
       <BotPairedServersWhoCanAsk bot={bot} />
     ) : null
-  if (entries.length === 0) {
+  if (entries.length === 0 && !wecom) {
     return (
       <>
         <BotNoConnectors bot={bot} />
@@ -94,6 +117,7 @@ export function BotWhoCanAskPage({ bot }: { bot: Bot }): React.JSX.Element {
   }
   return (
     <>
+      {wecom ? <WecomPeople /> : null}
       {entries.map((entry) => {
         switch (entry.kind) {
           case 'slack':

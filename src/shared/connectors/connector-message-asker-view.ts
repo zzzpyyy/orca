@@ -46,9 +46,12 @@ export function connectorAskerPlaceLabel(asker: ConnectorMessageAsker, t: Transl
     case 'direct_message':
       return t('components.native-chat.connectorAsker.directMessage', '{{source}} DM', { source })
     case 'group_message':
-      return t('components.native-chat.connectorAsker.groupMessage', '{{source}} group DM', {
-        source
-      })
+      // Slack's is a group DM; another source's (a WeCom or DingTalk group) is a group chat.
+      return asker.source === 'slack'
+        ? t('components.native-chat.connectorAsker.groupMessage', '{{source}} group DM', {
+            source
+          })
+        : t('components.native-chat.connectorAsker.groupChat', '{{source}} group', { source })
     case 'public_channel':
     case 'private_channel':
     case 'channel':

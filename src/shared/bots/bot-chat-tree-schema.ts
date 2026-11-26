@@ -36,6 +36,7 @@ const ORIGINS = hostUnionArms<BotChatOrigin>({
   slack: true,
   linear: true,
   github: true,
+  'wecom-local': true,
   automation: true,
   side: true
 })

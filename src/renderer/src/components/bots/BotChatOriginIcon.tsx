@@ -7,6 +7,7 @@ import { cn } from '@/lib/class-names'
 import type { BotChatOrigin, BotChatTreeChat } from '../../../../shared/bots/bot-chat-tree'
 import { GitHubIcon } from '../icons/GitHubIcon'
 import { LinearIcon } from '../icons/LinearIcon'
+import { WecomIcon } from '../icons/WecomIcon'
 import { usageLimitStopTip } from './BotUsageLimitMark'
 import type { BotUsageLimitStop } from './use-bot-usage-limit-stops'
 import { SlackIcon } from '../icons/SlackIcon'
@@ -16,6 +17,7 @@ const ORIGIN_ICONS = {
   slack: SlackIcon,
   linear: LinearIcon,
   github: GitHubIcon,
+  'wecom-local': WecomIcon,
   automation: CalendarClock,
   side: MessageSquare
 } as const
@@ -31,6 +33,8 @@ function useChatKindLabel(origin: BotChatOrigin): string {
       return t('bots.chats.kindLinear', 'Linear issue')
     case 'github':
       return t('bots.chats.kindGithub', 'GitHub thread')
+    case 'wecom-local':
+      return t('bots.wecom.chat', 'WeCom chat')
     case 'automation':
       return t('bots.chats.kindAutomation', 'Automation run')
     case 'side':

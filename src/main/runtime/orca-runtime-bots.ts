@@ -210,7 +210,7 @@ export abstract class OrcaRuntimeWithBots extends OrcaRuntimeWithLinearCommands 
   readonly localConnectors = new LocalConnectorHosts()
 
   /** The runtime's one bots DB worker: every bot store's SQL runs in it, off this thread. */
-  private readonly botsDb = new BotsDbWorkerClient()
+  readonly botsDb = new BotsDbWorkerClient()
 
   /** Which worker each bot conversation's code work went to. */
   readonly botWork = runtimeBotWork(this.botWorkRuntime, this.botsDb)

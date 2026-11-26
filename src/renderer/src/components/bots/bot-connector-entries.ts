@@ -9,8 +9,9 @@ import { useBotSlack } from '@/lib/bot-slack-state'
 import type { Bot } from '../../../../shared/bot-types'
 import {
   botConnectorEntries as sharedBotConnectorEntries,
-  type BotConnectorEntry
+  type BotConnectorEntry as SharedConnectorEntry
 } from '../../../../shared/bots/bot-connector-entries'
+import type { WecomLocalState } from '../../../../shared/bots/wecom-local'
 import type { BotGitHubView } from '@/lib/bot-github-state'
 import type { BotLinearView } from '@/lib/bot-linear-state'
 import type { BotSlackView } from '@/lib/bot-slack-state'
@@ -24,11 +25,20 @@ import { linearCardFace } from './linear/BotLinearCard'
 import { slackCardFace } from './slack/BotSlackCard'
 import { botConnectorTitleSeparator } from './bot-connector-titles'
 import { translate } from '@/i18n/i18n'
+import { wecomNeedsOwner } from './wecom/wecom-copy'
+import { useWecomState } from './wecom/wecom-local-client'
 
-export type {
-  BotConnectorEntry,
-  ComposioProblem
-} from '../../../../shared/bots/bot-connector-entries'
+/** The shared rows, and WeCom's, which only the desktop sets up. */
+export type BotConnectorEntry =
+  | SharedConnectorEntry
+  | {
+      kind: 'wecom-local'
+      key: string
+      needsOwner: boolean
+      title: SharedConnectorEntry['title']
+      state: WecomLocalState
+    }
+export type { ComposioProblem } from '../../../../shared/bots/bot-connector-entries'
 
 /** What the list is built from: the stores each connector's row reads. */
 export type BotConnectorSources = {
@@ -65,6 +75,7 @@ export function useBotConnectorInventory(
 ): BotConnectorInventory {
   const shown = bot !== null
   const slack = useBotSlack(bot)
+  const wecom = useWecomState(bot)
   const hostId = bot?.hostId ?? ownBotHost().hostId
   const linear = useBotLinear(hostId, shown)
   const github = useBotGitHub(hostId, shown)
@@ -92,11 +103,22 @@ export function useBotConnectorInventory(
     if (tools.status !== 'ready') {
       unresolved.push('app')
     }
-    return {
-      entries: botConnectorEntries(bot, { slack, linear, github, google, composio, tools }, t),
-      unresolved
+    const entries: BotConnectorEntry[] = botConnectorEntries(
+      bot,
+      { slack, linear, github, google, composio, tools },
+      t
+    )
+    if (wecom && wecom.status !== 'off') {
+      entries.push({
+        kind: 'wecom-local',
+        key: 'wecom-local',
+        title: { service: t('bots.wecom.name', 'WeCom'), name: null },
+        state: wecom,
+        needsOwner: wecomNeedsOwner(wecom)
+      })
     }
-  }, [bot, slack, linear, github, google, composio, tools, t])
+    return { entries, unresolved }
+  }, [bot, slack, linear, github, google, composio, tools, t, wecom])
 }
 
 /** The list itself, from the bot and its sources. */

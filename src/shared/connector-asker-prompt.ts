@@ -349,24 +349,24 @@ export function connectorMessageShown(message: ShownMessage): {
   drawnMarkdown?: string
 } {
   const { role, blocks } = message
-  const [only] = blocks
-  if (
-    message.origin !== 'connector' ||
-    role !== 'user' ||
-    blocks.length !== 1 ||
-    only?.type !== 'text'
-  ) {
-    return { blocks }
-  }
-  const shown = connectorMessageShownText(only.text)
+  // Its one text block, beside any of the asker's images; anything else is no delivered message.
+  const texts = blocks.filter((block) => block.type === 'text')
+  const plain = blocks.every((block) => block.type === 'text' || block.type === 'image-ref')
+  const only = plain && texts.length === 1 ? texts[0] : undefined
+  const shown =
+    message.origin === 'connector' && role === 'user' && only?.type === 'text'
+      ? connectorMessageShownText(only.text)
+      : null
   if (shown === null) {
     return { blocks }
   }
+  const withText = (text: string): NativeChatBlock[] =>
+    blocks.map((block) => (block === only ? { ...only, text } : block))
   // Slack's markup stays in what the agent reads; the chat shows it as Slack does.
   const slack = message.asker?.source === 'slack' ? slackMarkupShownText(shown) : null
   return slack
-    ? { blocks: [{ ...only, text: slack.text }], drawnMarkdown: slack.markdown }
-    : { blocks: [{ ...only, text: shown }] }
+    ? { blocks: withText(slack.text), drawnMarkdown: slack.markdown }
+    : { blocks: withText(shown) }
 }
 
 /** A message's blocks as the chat shows them; see `connectorMessageShown`. */

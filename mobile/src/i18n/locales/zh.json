@@ -1773,6 +1773,7 @@
       "connectorAsker": {
         "directMessage": "{{source}} 私信",
         "groupMessage": "{{source}} 群组私信",
+        "groupChat": "{{source}} 群聊",
         "you": "你",
         "someone": "某人",
         "anApp": "某个应用",
@@ -8236,6 +8237,9 @@
     },
     "memoryHistory": {
       "tidyUp": "整理"
+    },
+    "wecom": {
+      "chat": "企业微信会话"
     }
   },
   "hostMutation": {

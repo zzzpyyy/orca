@@ -1,5 +1,8 @@
 import { useBotHostHas } from '@/lib/bot-host-status'
-import { BOTS_CONNECTORS_RUNTIME_CAPABILITY } from '../../../../shared/bot-runtime-capabilities'
+import {
+  BOTS_CONNECTORS_RUNTIME_CAPABILITY,
+  BOTS_WECOM_LOCAL_CAPABILITY
+} from '../../../../shared/bot-runtime-capabilities'
 import {
   LOCAL_EXECUTION_HOST_ID,
   type ExecutionHostId
@@ -15,21 +18,33 @@ import { GitHubIcon } from '../icons/GitHubIcon'
 import { GoogleIcon } from '../icons/GoogleIcon'
 import { LinearIcon } from '../icons/LinearIcon'
 import { SlackIcon } from '../icons/SlackIcon'
+import { WecomIcon } from '../icons/WecomIcon'
 import { useWebhooksConnector } from './webhooks/use-webhooks-connector'
+import { useWecomState } from './wecom/wecom-local-client'
 
 export type BotConnector = {
-  id: 'slack' | 'discord' | 'google' | 'linear' | 'github' | 'webhooks'
+  id: 'slack' | 'wecom-local' | 'discord' | 'google' | 'linear' | 'github' | 'webhooks'
   label: string
   Icon: ComponentType<{ className?: string }>
   /** False shows the connector as "Coming soon"; see useBotConnectorAvailable for Linear and GitHub. */
   available: boolean
-  /** link: an account the connector list links. chat: set up by asking the bot in its Chat. */
-  add: 'link' | 'chat'
+  /** link: an account the connector list links. chat: set up by asking the bot in its Chat. host:
+   *  credentials the owner enters in Orca, kept and used only on the bot's computer. */
+  add: 'link' | 'chat' | 'host'
 }
 
 /** Where people can reach a bot, in the order every connector list shows them. */
 export const BOT_CONNECTORS: readonly BotConnector[] = [
   { id: 'slack', label: 'Slack', Icon: SlackIcon, available: true, add: 'link' },
+  {
+    id: 'wecom-local',
+    get label() {
+      return translate('bots.wecom.name', 'WeCom')
+    },
+    Icon: WecomIcon,
+    available: true,
+    add: 'host'
+  },
   { id: 'discord', label: 'Discord', Icon: DiscordIcon, available: false, add: 'link' },
   { id: 'google', label: 'Google', Icon: GoogleIcon, available: true, add: 'link' },
   { id: 'linear', label: 'Linear', Icon: LinearIcon, available: true, add: 'link' },
@@ -83,16 +98,29 @@ export function useBotConnectorState(bot: Bot): {
 } {
   const accountAvailable = useBotConnectorAvailable(bot.hostId)
   const webhooks = useWebhooksConnector(bot)
+  const wecom = useWecomState(bot)
+  // WeCom runs on the bot's host; an older one has no WeCom connector to set up.
+  const hasWecom = useBotHostHas(bot.hostId, BOTS_WECOM_LOCAL_CAPABILITY)
   // Slack, Linear and GitHub set up on the bot's host; an older one can't from here.
   const setUpHere = useBotHostHas(bot.hostId, BOTS_CONNECTORS_RUNTIME_CAPABILITY)
   return {
-    catalog: BOT_CONNECTORS.filter((connector) => connector.id !== 'webhooks' || webhooks !== null),
+    catalog: BOT_CONNECTORS.filter(
+      (connector) =>
+        (connector.id !== 'webhooks' || webhooks !== null) &&
+        (connector.id !== 'wecom-local' || hasWecom)
+    ),
     available: (connector) =>
       connector.id === 'webhooks'
         ? webhooks !== null
-        : accountAvailable(connector) && (setUpHere || connector.id === 'google'),
+        : connector.id === 'wecom-local'
+          ? hasWecom && wecom !== null
+          : accountAvailable(connector) && (setUpHere || connector.id === 'google'),
     added: (connector) =>
-      connector.id === 'webhooks' ? webhooks === 'added' : connectorAdded(bot, connector.id)
+      connector.id === 'webhooks'
+        ? webhooks === 'added'
+        : connector.id === 'wecom-local'
+          ? !!wecom && wecom.status !== 'off'
+          : connectorAdded(bot, connector.id)
   }
 }
 

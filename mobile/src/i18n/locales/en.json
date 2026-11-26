@@ -1721,6 +1721,7 @@
       "connectorAsker": {
         "directMessage": "{{source}} DM",
         "groupMessage": "{{source}} group DM",
+        "groupChat": "{{source}} group",
         "you": "You",
         "someone": "Someone",
         "anApp": "An app",
@@ -7992,6 +7993,9 @@
     },
     "memoryHistory": {
       "tidyUp": "Tidy-up"
+    },
+    "wecom": {
+      "chat": "WeCom chat"
     }
   },
   "mobileWebShell": {

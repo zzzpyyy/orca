@@ -114,9 +114,9 @@ export function DirectAppRow({
 }): React.JSX.Element {
   const t = useTranslate()
   const connector = 'connector' in row ? row.connector : null
-  // A bot on Slack, Linear or GitHub can join another workspace or org; Google is once per bot.
+  // A bot on Slack, Linear or GitHub can join another workspace or org; Google and WeCom are once per bot.
   const another =
-    row.added && connector && connector.id !== 'google'
+    row.added && connector && connector.id !== 'google' && connector.id !== 'wecom-local'
       ? connector.id === 'github'
         ? {
             label: t('bots.connectors.addOrg', 'Add org'),

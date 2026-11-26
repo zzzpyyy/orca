@@ -21605,6 +21605,7 @@
         "directMessage": "{{source}} 私信",
         "earlierMessages": "话题中更早的 {{count}} 条消息",
         "earlierMessages_other": "话题中更早的 {{count}} 条消息",
+        "groupChat": "{{source}} 群聊",
         "groupMessage": "{{source}} 群组私信",
         "label": "{{name}}，来自 {{place}}",
         "noAccess": "无访问权限",
@@ -22010,6 +22011,10 @@
         "removed": "已移除",
         "remove": "移除",
         "added": "已添加"
+      },
+      "localConnector": {
+        "only": "仅在 Orca 中",
+        "tooltip": "{{source}}只回复你在那里发的消息。你在这里输入的内容只留在 Orca。"
       }
     },
     "tab": {
@@ -27397,7 +27402,8 @@
       "emptyNote": "让大家在 Slack、GitHub 和 Linear 中联系 {{name}}，并让它在你的 Google 及其他应用中工作",
       "add": "添加",
       "needYou_one": "{{count}} 个需要你",
-      "needYou_other": "{{count}} 个需要你"
+      "needYou_other": "{{count}} 个需要你",
+      "wecom": "在企业微信单聊和群聊里通过智能机器人与这个机器人对话。"
     },
     "files": {
       "tab": "文件"
@@ -28189,7 +28195,8 @@
         "todoist": "添加、整理和完成任务",
         "zapier": "在你于 Zapier 中设置的应用里执行操作",
         "granola": "搜索会议笔记和转录",
-        "intercom": "搜索对话、联系人和文章"
+        "intercom": "搜索对话、联系人和文章",
+        "wecom": "你的企业微信单聊和群里的 @消息"
       },
       "mcp": {
         "adding": "正在添加 {{app}}…",
@@ -30565,6 +30572,62 @@
       "removeServer": "移除 {{server}}",
       "search": "搜索已配对的服务器",
       "tooltip": "这些服务器上的 bot 和智能体可以向 {{name}} 提问，无需每次征得你的同意。"
+    },
+    "wecom": {
+      "chat": "企业微信会话",
+      "name": "企业微信",
+      "who": "只有你能提问：从你用配对码配对过的单聊和群聊里。",
+      "review_one": "有 1 条企业微信消息没能交给机器人的聊天，企业微信里已说明原因。",
+      "review_other": "有 {{count}} 条企业微信消息没能交给机器人的聊天，企业微信里已说明原因。",
+      "unconfirmed_one": "有 1 条回复可能没送达企业微信。Orca 不会自动重发：请先在企业微信里确认，没收到再重新发送。",
+      "unconfirmed_other": "有 {{count}} 条回复可能没送达企业微信。Orca 不会自动重发：请先在企业微信里确认，没收到的再重新发送。",
+      "replyError": "企业微信拒绝了一条回复（错误码 {{code}}），Orca 会继续重试。",
+      "dismiss": "忽略",
+      "resend": "重新发送",
+      "errorResend": "企业微信没有确认这次重新发送，它可能显示了，也可能没有。再次重新发送前，请先在企业微信里确认。",
+      "errorNotConnected": "企业微信当前未连接，连接后再试。",
+      "line": "在这台电脑上，通过智能机器人收发你的企业微信单聊和群聊",
+      "needsLook": "需要查看",
+      "streaming": "回复会实时显示机器人的思考、步骤和答案，最后给出完整答案。",
+      "openConversation": "打开会话",
+      "settings": "连接设置",
+      "steps": "在企业微信管理后台打开「应用管理」，创建智能机器人，选择 API 模式并使用长连接，然后复制它的 Bot ID 和 Secret。",
+      "openConsole": "打开企业微信管理后台",
+      "botId": "Bot ID",
+      "secret": "Secret",
+      "sealed": "机器人所在的电脑会用系统钥匙串加密保存 Secret，Orca 之后不会再显示它。",
+      "pairGroupSteps": "把机器人拉进群，再用你自己的账号 @机器人 并发送这个配对码。五分钟内有效。",
+      "copied": "已复制",
+      "copyCode": "复制配对码",
+      "title": "企业微信（在机器人所在的电脑上）",
+      "hostError": "无法读取机器人所在的电脑。",
+      "loading": "正在检查机器人所在的电脑…",
+      "botHint": "Bot ID 末尾为 {{hint}}",
+      "close": "关闭",
+      "disconnect": "断开企业微信",
+      "pairGroup": "配对群聊",
+      "reconnect": "重新连接",
+      "connect": "连接并配对",
+      "off": "填写一个使用 API 模式和长连接的企业微信智能机器人的 Bot ID 和 Secret。",
+      "connecting": "正在连接企业微信…",
+      "pairing": "用你自己的企业微信账号，在与机器人的单聊里发送这个配对码。五分钟内有效。",
+      "listening_one": "正在回复你发给机器人的单聊消息，以及 1 个已配对群里的 @消息。",
+      "listening_other": "正在回复你发给机器人的单聊消息，以及 {{count}} 个已配对群里的 @消息。",
+      "authFailed": "企业微信拒绝了 Bot ID 或 Secret。请确认机器人使用 API 模式和长连接，然后重新填写。",
+      "replaced": "另一个客户端用这个 Bot ID 建立了连接，企业微信因此断开了 Orca 的连接。重新连接即可收回。",
+      "retrying": "与企业微信的连接断开，正在重试…",
+      "secretUnreadable": "这台电脑已无法读取保存的 Secret，请重新填写 Bot ID 和 Secret。",
+      "paused": "这个机器人已暂停，或机器人功能已关闭。恢复前，企业微信消息会收到一条提示。",
+      "expired": "配对码在发给机器人之前已过期。重新填写 Bot ID 和 Secret 以获取新的配对码。",
+      "streamingPermission": "实时回复已关闭：企业微信提示机器人没有更新回复的权限。Orca 会先发一条提示，再单独发出最终答案。",
+      "streamingRate": "实时回复已暂停：企业微信限制了机器人的回复频率。Orca 会先发一条提示，再单独发出最终答案。",
+      "streamingFailed": "上一轮的实时回复已停止。Orca 会先发一条提示，再单独发出最终答案。",
+      "errorStorage": "这台电脑没有可加密的凭据存储，Orca 不会在这里保存 Secret。",
+      "errorTaken": "这个企业微信机器人已连接到另一个 Orca 机器人。",
+      "errorSave": "无法保存 Secret，请重试。",
+      "errorPairDm": "请先配对你与机器人的单聊。",
+      "errorUnavailable": "机器人已暂停、已删除，或机器人功能已关闭。",
+      "errorHost": "无法连接机器人所在的电脑，请重试。"
     }
   },
   "speechModelUpdate": {

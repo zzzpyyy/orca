@@ -8,6 +8,7 @@ import type { BotConnectorId } from './AddConnectorDialog'
 import { openGitHubInstallPage } from './github/github-install-page'
 import { BotLinearSetupDialog } from './linear/BotLinearSetupDialog'
 import { BotSlackSetupDialog } from './slack/BotSlackSetupDialog'
+import { BotWecomSetup } from './wecom/BotWecomSetup'
 import { GoogleAccountsDialog } from './google/GoogleAccountsChoice'
 import { refreshGoogle } from './google/google-connect-client'
 import { GoogleHostChoiceDialog } from './google/GoogleHostChoiceDialog'
@@ -75,6 +76,9 @@ export function useConnectorSetup(bot: Bot): {
   }
   const dialogs = (
     <>
+      {setupOpen === 'wecom-local' ? (
+        <BotWecomSetup key={bot.id} bot={bot} onClose={() => setSetupOpen(null)} />
+      ) : null}
       <BotSlackSetupDialog
         bot={bot}
         open={setupOpen === 'slack'}

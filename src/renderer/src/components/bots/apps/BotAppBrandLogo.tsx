@@ -30,6 +30,7 @@ import zapierLogo from '@/assets/connector-brands/zapier.svg'
 import { GitHubIcon } from '../../icons/GitHubIcon'
 import { GoogleIcon } from '../../icons/GoogleIcon'
 import { SlackIcon } from '../../icons/SlackIcon'
+import { WecomIcon } from '../../icons/WecomIcon'
 import { LinearIcon } from '../../icons/LinearIcon'
 import { BARE_LOGO_BOX, BotAppLogo, BotLogoBare } from './BotAppRow'
 import { cn } from '@/lib/class-names'
@@ -49,6 +50,7 @@ type BotAppBrand = {
 /** By connector id or BOT_MCP_APPS id; a new MCP app adds its logo here, and its tile to LOGO_TILES.brand. */
 const BRANDS: Readonly<Record<string, BotAppBrand>> = {
   slack: { logo: slackLogo, Icon: SlackIcon },
+  'wecom-local': { Icon: WecomIcon },
   google: { logo: googleLogo, Icon: GoogleIcon },
   linear: { Icon: LinearIcon },
   github: { Icon: GitHubIcon },

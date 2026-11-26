@@ -2314,6 +2314,14 @@
         "change": "Signing secret: {{sender}} · Change…"
       }
     },
+    "wecom": {
+      "listening_one": "Answering your direct messages to the bot, and @mentions in 1 paired group.",
+      "listening_other": "Answering your direct messages to the bot, and @mentions in {{count}} paired groups.",
+      "review_one": "A WeCom message didn’t reach the bot’s chat. WeCom was told why.",
+      "review_other": "{{count}} WeCom messages didn’t reach the bot’s chat. WeCom was told why.",
+      "unconfirmed_one": "A reply may not have reached WeCom. Orca never sends it twice on its own: check WeCom, then resend it if it’s missing.",
+      "unconfirmed_other": "{{count}} replies may not have reached WeCom. Orca never sends one twice on its own: check WeCom, then resend any that are missing."
+    },
     "workspaces": {
       "moreAgents": "{{count}} more agents",
       "moreAgents_one": "{{count}} more agent",

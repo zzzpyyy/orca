@@ -9,6 +9,7 @@ import { botAccessHost } from '../bots/bot-access-host'
 import { botAccessSeenFile, createBotAccessRequestWatch } from '../bots/bot-access-request-watch'
 import { notifyBotCouldNotFinish, runtimeBotOwnerNotice } from '../bots/bot-could-not-finish'
 import { WebhookHostService } from '../webhooks/webhook-host-service'
+import { WecomLocalHost } from '../wecom-local/wecom-local-host'
 import { installComposioUpkeep } from '../runtime/rpc/methods/bots-composio-upkeep'
 import { refreshDueLinearLogins } from '../linear/accounts/linear-login-refresh'
 import type { OrcaRuntimeService } from '../runtime/orca-runtime'
@@ -49,6 +50,9 @@ export function installConnectorHost({
   kind,
   isFenced
 }: ConnectorHostOptions): ConnectorHost {
+  runtime.localConnectors.add(
+    new WecomLocalHost(runtime, userDataPath, store.getProfileStorageDirectory())
+  )
   const gitHubInstallations = new ConnectorGitHubInstallations({
     account: () => connectorAccount(userDataPath),
     fetchState: () =>

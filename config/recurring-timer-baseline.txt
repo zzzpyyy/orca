@@ -71,6 +71,7 @@
 1 src/main/startup/main-window/synthetic-title-runtime.ts
 1 src/main/telemetry/wsl-usage-reporter.ts
 1 src/main/webhooks/webhook-recovery-sweep.ts
+1 src/main/wecom-local/wecom-socket.ts # why: the WeCom long connection's 30 s ping is its heartbeat (a missed pong ends the link); cleared when the socket ends
 1 src/main/wsl/orcad/wsl-orcad-connect-stop-fence.ts
 1 src/renderer/src/app-shell/storage/use-app-session-persistence.ts
 1 src/renderer/src/components/bots/google/google-account-readiness.ts

@@ -17,6 +17,11 @@ export type BotConnectorId = BotConnector['id']
 /** What a connector does for a bot, as Add connector and the chat's Connect card word it. */
 export function connectorDescription(id: BotConnectorId): string {
   switch (id) {
+    case 'wecom-local':
+      return translate(
+        'bots.connectors.wecom',
+        'Chat with the bot from your WeCom direct messages and groups, through a WeCom AI bot.'
+      )
     case 'webhooks':
       return translate(
         'bots.connectors.webhooks',

@@ -253,6 +253,7 @@ import {
   BotToolsList,
   BotToolsSetHostMcpServers
 } from './bots-tools-params'
+import { WecomLocalBot, WecomLocalConnect, WecomLocalResend } from './bots-wecom-local-params'
 import { BotWorkForget, BotWorkList } from './bots-work-params'
 import {
   AudioMuted,
@@ -1409,6 +1410,13 @@ export const RPC_PARAMS_BY_METHOD = {
   'bots.upNext.seen': BotUpNextSeen,
   'bots.upNext.unseen': null,
   'bots.update': BotUpdate,
+  'bots.wecomLocal.connect': WecomLocalConnect,
+  'bots.wecomLocal.dismiss': WecomLocalBot,
+  'bots.wecomLocal.pairGroup': WecomLocalBot,
+  'bots.wecomLocal.reconnect': WecomLocalBot,
+  'bots.wecomLocal.remove': WecomLocalBot,
+  'bots.wecomLocal.resend': WecomLocalResend,
+  'bots.wecomLocal.state': WecomLocalBot,
   'bots.work.forget': BotWorkForget,
   'bots.work.list': BotWorkList,
   'browser.addWordToDictionary': PageMenuWord,

@@ -22454,6 +22454,7 @@
         "earlierMessages": "{{count}} earlier messages in the thread",
         "earlierMessages_one": "{{count}} earlier message in the thread",
         "earlierMessages_other": "{{count}} earlier messages in the thread",
+        "groupChat": "{{source}} group",
         "groupMessage": "{{source}} group DM",
         "label": "{{name}} in {{place}}",
         "noAccess": "no access",
@@ -23108,6 +23109,10 @@
         "sampleCall": "Sample call",
         "sampleNote": "Starts a real run",
         "send": "Send"
+      },
+      "localConnector": {
+        "only": "Only in Orca",
+        "tooltip": "Your {{source}} chat gets replies to what you send there. What you type here stays in Orca."
       }
     },
     "tab": {
@@ -28114,7 +28119,8 @@
       "emptyNote": "Let people reach {{name}} in Slack, GitHub and Linear, and let it work in your Google and other apps.",
       "add": "Add",
       "needYou_one": "{{count}} needs you",
-      "needYou_other": "{{count}} need you"
+      "needYou_other": "{{count}} need you",
+      "wecom": "Chat with the bot from your WeCom direct messages and groups, through a WeCom AI bot."
     },
     "files": {
       "tab": "Files"
@@ -30054,7 +30060,8 @@
         "todoist": "Add, sort and complete tasks",
         "zapier": "Run actions in the apps you set up in Zapier",
         "granola": "Search meeting notes and transcripts",
-        "intercom": "Search conversations, contacts and articles"
+        "intercom": "Search conversations, contacts and articles",
+        "wecom": "Your WeCom DMs and group @mentions"
       },
       "mcp": {
         "adding": "Adding {{app}}…",
@@ -30898,6 +30905,62 @@
         "expired": "The sign-in expired. Try again.",
         "couldNotSignIn": "Couldn’t sign in. Try again."
       }
+    },
+    "wecom": {
+      "chat": "WeCom chat",
+      "name": "WeCom",
+      "who": "Only you can ask, from the direct message and groups you paired with a code.",
+      "review_one": "A WeCom message didn’t reach the bot’s chat. WeCom was told why.",
+      "review_other": "{{count}} WeCom messages didn’t reach the bot’s chat. WeCom was told why.",
+      "unconfirmed_one": "A reply may not have reached WeCom. Orca never sends it twice on its own: check WeCom, then resend it if it’s missing.",
+      "unconfirmed_other": "{{count}} replies may not have reached WeCom. Orca never sends one twice on its own: check WeCom, then resend any that are missing.",
+      "replyError": "WeCom refused a reply (error {{code}}). Orca keeps trying.",
+      "dismiss": "Dismiss",
+      "resend": "Resend",
+      "errorResend": "WeCom didn’t confirm the resend, so it may or may not show. Check WeCom before resending again.",
+      "errorNotConnected": "WeCom isn’t connected right now. Try again once it is.",
+      "line": "Your WeCom DMs and groups with an AI bot, on this computer",
+      "needsLook": "Needs a look",
+      "streaming": "Replies show the bot’s thinking, steps and answer as it works, then the full answer.",
+      "openConversation": "Open conversation",
+      "settings": "Connection settings",
+      "steps": "In the WeCom admin console, open Apps, create an AI bot, choose API mode with a long connection, and copy its Bot ID and Secret.",
+      "openConsole": "Open WeCom admin console",
+      "botId": "Bot ID",
+      "secret": "Secret",
+      "sealed": "The bot’s computer seals the Secret with its keychain. Orca never shows it again.",
+      "pairGroupSteps": "Add the bot to the group, then @mention it with this code from your own account. It expires in five minutes.",
+      "copied": "Copied",
+      "copyCode": "Copy code",
+      "title": "WeCom on this bot’s computer",
+      "hostError": "Couldn’t read the bot’s computer.",
+      "loading": "Checking the bot’s computer…",
+      "botHint": "Bot ID ending in {{hint}}",
+      "close": "Close",
+      "disconnect": "Disconnect WeCom",
+      "pairGroup": "Pair a group",
+      "reconnect": "Reconnect",
+      "connect": "Connect and pair",
+      "off": "Enter the Bot ID and Secret of a WeCom AI bot that uses API mode with a long connection.",
+      "connecting": "Connecting to WeCom…",
+      "pairing": "Send this code to the bot in a direct message from your own WeCom account. It expires in five minutes.",
+      "listening_one": "Answering your direct messages to the bot, and @mentions in 1 paired group.",
+      "listening_other": "Answering your direct messages to the bot, and @mentions in {{count}} paired groups.",
+      "authFailed": "WeCom refused the Bot ID or Secret. Check that the bot uses API mode with a long connection, then enter them again.",
+      "replaced": "Another client connected with this Bot ID, so WeCom closed Orca’s connection. Reconnect to take it back.",
+      "retrying": "Lost the connection to WeCom. Retrying…",
+      "secretUnreadable": "This computer can no longer read the saved Secret. Enter the Bot ID and Secret again.",
+      "paused": "This bot is paused or bots are off. WeCom messages get a notice until it resumes.",
+      "expired": "The pairing code expired before it reached the bot. Enter the Bot ID and Secret to get a new one.",
+      "streamingPermission": "Live replies are off: WeCom says the bot lacks permission to update its reply. Orca sends a notice, then the final answer as separate messages.",
+      "streamingRate": "Live replies paused: WeCom limits how often the bot can reply. Orca sends a notice, then the final answer as separate messages.",
+      "streamingFailed": "Live replies stopped for the last turn. Orca sends a notice, then the final answer as separate messages.",
+      "errorStorage": "This computer has no sealed credential storage, so Orca won’t save the Secret here.",
+      "errorTaken": "This WeCom bot is already connected to another Orca bot.",
+      "errorSave": "Couldn’t save the Secret. Try again.",
+      "errorPairDm": "Pair your direct message with the bot first.",
+      "errorUnavailable": "The bot is paused, deleted or bots are off.",
+      "errorHost": "Couldn’t reach the bot’s computer. Try again."
     }
   },
   "plugins": {
