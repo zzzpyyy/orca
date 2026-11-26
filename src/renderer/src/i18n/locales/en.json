@@ -25315,7 +25315,8 @@
     "cancel": "Cancel",
     "unassigned": "Unassigned",
     "copy": "Copy",
-    "delete": "Delete"
+    "delete": "Delete",
+    "done": "Done"
   },
   "terminal": {
     "recentImages": {
@@ -28114,7 +28115,8 @@
       "emptyNote": "Let people reach {{name}} in Slack, GitHub and Linear, and let it work in your Google and other apps.",
       "add": "Add",
       "needYou_one": "{{count}} needs you",
-      "needYou_other": "{{count}} need you"
+      "needYou_other": "{{count}} need you",
+      "dingtalk": "Chat with the bot from selected DingTalk groups on this computer."
     },
     "files": {
       "tab": "Files"
@@ -30054,7 +30056,8 @@
         "todoist": "Add, sort and complete tasks",
         "zapier": "Run actions in the apps you set up in Zapier",
         "granola": "Search meeting notes and transcripts",
-        "intercom": "Search conversations, contacts and articles"
+        "intercom": "Search conversations, contacts and articles",
+        "dingtalk": "Messages and mentions from DingTalk groups"
       },
       "mcp": {
         "adding": "Adding {{app}}…",
@@ -30370,7 +30373,8 @@
       "open": "Open",
       "actions": "Chat actions",
       "needsYouCount": "{{count}} needs you",
-      "hideOlder": "Hide older"
+      "hideOlder": "Hide older",
+      "kindDingtalk": "DingTalk group"
     },
     "cloudSignIn": {
       "automationScheduledOnly": "Runs on its schedule only: its events are paused while signed out of Orca",
@@ -30898,6 +30902,11 @@
         "expired": "The sign-in expired. Try again.",
         "couldNotSignIn": "Couldn’t sign in. Try again."
       }
+    },
+    "dingtalk": {
+      "connect": "Connect DingTalk",
+      "description": "Use the local DingTalk connector to let {{bot}} receive selected group messages on this computer.",
+      "localOnly": "The connector runs locally and uses your existing dws login. Add each group to dingtalk-local.json in the Orca profile data directory, set its botId to {{botId}}, then restart Orca."
     }
   },
   "plugins": {
