@@ -2,7 +2,7 @@
 // groups bring the @mention's text, mixed and quoted messages.
 import { z } from 'zod'
 import type { WecomArrival, WecomBody, WecomMedia } from './wecom-inbox-rows'
-import { maskImText } from '../im-stream/im-stream-step'
+import { maskImText } from '../im-stream/im-stream-mask'
 
 const Text = z.object({ content: z.string() })
 const Media = z.object({ url: z.string().min(1), aeskey: z.string().optional() })

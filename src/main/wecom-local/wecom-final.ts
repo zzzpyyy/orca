@@ -4,7 +4,8 @@
 // unconfirmed for the owner to resend. Each attempt is written down before it goes, so a restart
 // resumes.
 import { ANSWER_CUT_NOTE, capAnswer } from '../connector-cloud/connector-snapshot'
-import { splitImText } from '../im-stream/im-stream-chunks'
+import { sendImParts } from '../im-stream/im-stream-part-delivery'
+import { splitImText } from '../im-stream/im-stream-parts'
 import { WECOM_COPY, WECOM_PART_LABEL } from './wecom-copy'
 import { WecomOffline, WecomRefused, WecomUnanswered } from './wecom-socket'
 import type { WecomMessageRow } from './wecom-inbox-rows'
@@ -15,10 +16,11 @@ export const WECOM_MESSAGE_BYTES = 20_480
 /** Above this many messages (WeCom allows 30 a minute per chat) the rest stays in Orca. */
 export const WECOM_MAX_PARTS = 8
 const PART_ROOM_BYTES = 1024
+const WECOM_LIMIT = { maxBytes: WECOM_MESSAGE_BYTES }
 
 /** The reply as the messages it goes in, in order; the same text always splits the same way. */
 export function wecomFinalParts(text: string): string[] {
-  const parts = splitImText(text, WECOM_MESSAGE_BYTES, WECOM_PART_LABEL)
+  const parts = splitImText(text, WECOM_LIMIT, WECOM_PART_LABEL)
   if (parts.length <= WECOM_MAX_PARTS) {
     return parts
   }
@@ -27,7 +29,7 @@ export function wecomFinalParts(text: string): string[] {
     const noted = cut.endsWith(ANSWER_CUT_NOTE)
       ? `${cut.slice(0, -ANSWER_CUT_NOTE.length)}${WECOM_COPY.restInOrca}`
       : cut
-    const fitted = splitImText(noted, WECOM_MESSAGE_BYTES, WECOM_PART_LABEL)
+    const fitted = splitImText(noted, WECOM_LIMIT, WECOM_PART_LABEL)
     if (fitted.length <= WECOM_MAX_PARTS) {
       return fitted
     }
@@ -103,50 +105,43 @@ export async function sendWecomFinal(
   const parts = wecomFinalParts(chosen.final_text)
   const { mid } = chosen
   let via = chosen.final_via
+  let sent = chosen.parts_sent
   let sending = chosen.part_sending
-  for (let part = chosen.parts_sent + 1; part <= parts.length; part++) {
-    const text = parts[part - 1]!
-    if (part === 1 && via === 'stream') {
-      const outcome = await streamPart(
-        store,
-        account,
-        { ...chosen, part_sending: sending },
-        text,
-        port
-      )
-      if (outcome === 'sent') {
-        sending = null
-        continue
-      }
-      if (outcome !== 'push') {
-        return outcome
-      }
-      via = 'push'
-      sending = null
+  if (sent === 0 && via === 'stream') {
+    const outcome = await streamPart(store, account, chosen, parts[0]!, port)
+    if (outcome !== 'sent' && outcome !== 'push') {
+      return outcome
     }
-    if (sending === part) {
-      // Sent before a restart or a lost answer, and WeCom may have shown it: never twice.
-      await store.partSent(account, mid, part, false)
-      sending = null
-      continue
-    }
-    await store.partSending(account, mid, part)
-    sending = part
-    let shown = true
-    try {
-      await port.push({ ...chosen, final_via: via }, text)
-    } catch (error) {
-      if (!(error instanceof WecomUnanswered)) {
-        await store.partRefused(account, mid, part)
-        return {
-          kind: 'retry',
-          ...(error instanceof WecomRefused ? { errcode: error.errcode } : {})
-        }
-      }
-      shown = false
-    }
-    await store.partSent(account, mid, part, shown)
+    sent = outcome === 'sent' ? 1 : 0
+    via = outcome === 'push' ? 'push' : via
     sending = null
+  }
+  // The store counts parts from 1, the core from 0.
+  let refusal: unknown
+  try {
+    await sendImParts(
+      parts,
+      { sent, sending: sending === null ? null : sending - 1 },
+      {
+        guarantee: 'at-most-once',
+        send: (text) =>
+          port.push({ ...chosen, final_via: via }, text).catch((error: unknown) => {
+            refusal = error
+            throw error
+          }),
+        unknown: (error) => error instanceof WecomUnanswered
+      },
+      {
+        sending: (index) => store.partSending(account, mid, index + 1),
+        settled: (index, shown) => store.partSent(account, mid, index + 1, shown),
+        refused: (index) => store.partRefused(account, mid, index + 1)
+      }
+    )
+  } catch (error) {
+    if (error !== refusal) {
+      throw error
+    }
+    return { kind: 'retry', ...(error instanceof WecomRefused ? { errcode: error.errcode } : {}) }
   }
   return { kind: 'done' }
 }

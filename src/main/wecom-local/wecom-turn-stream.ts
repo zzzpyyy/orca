@@ -3,7 +3,8 @@
 // the answer while WeCom still takes edits. Only the connection that received the message can edit
 // it; past its window, or once WeCom refuses edits, the answer goes as pushed messages.
 import { setTimeout as delay } from 'node:timers/promises'
-import { ImLiveStream, renderImProgress, type ImStreamDegrade } from '../im-stream/im-stream-live'
+import { ImLiveStream, type ImStreamDegrade } from '../im-stream/im-stream-live'
+import { renderImProgress } from '../im-stream/im-stream-progress'
 import { IM_STREAM_MIN_GAP_MS } from '../im-stream/im-stream-throttle'
 import { EMPTY_IM_TURN_VIEW, type ImTurnView } from '../im-stream/im-stream-turn-view'
 import { clampUtf8TextTail, isUtf8ByteLengthWithinLimit } from '../../shared/text/utf8-byte-limits'

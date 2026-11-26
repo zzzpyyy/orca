@@ -2,6 +2,7 @@
 // message no turn answers. The final text is chosen once; wecom-final sends it at most once.
 import type { ConnectorReplyJournal } from '../connector-cloud/connector-reply-outbox'
 import { ANSWER_CUT_NOTE } from '../connector-cloud/connector-snapshot'
+import { imAnswerText } from '../im-stream/im-stream-mask'
 import { readImTurnView } from '../im-stream/im-stream-turn-view'
 import { getStructuredAgentSessionHost } from '../native-chat/agent-session-wire/host/structured-agent-session-registry'
 import type { OrcaRuntimeService } from '../runtime/orca-runtime'
@@ -66,7 +67,8 @@ async function finalText(
   if (row.fill.answerDeliveryId !== row.deliveryId) {
     return [own.notice, WECOM_COPY.merged(answerer?.preview ?? '…')].filter(Boolean).join('\n\n')
   }
-  const answer = row.fill.outcome === 'answered' ? (await answerOf(row)).trim() : ''
+  // Masked as its progress was, so the final shows no key the stream hid.
+  const answer = row.fill.outcome === 'answered' ? imAnswerText((await answerOf(row)).trim()) : ''
   const failure = row.fill.outcome === 'failed' ? row.fill.failure : undefined
   return [
     own.notice,

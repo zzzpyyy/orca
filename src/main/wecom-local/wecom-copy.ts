@@ -1,7 +1,7 @@
 // What the owner reads in WeCom: Orca's own words around the agent's answer, in Chinese since
 // WeCom's users read it. The agent's answer itself is never rewritten.
-import type { ImPartLabel } from '../im-stream/im-stream-chunks'
-import type { ImProgressFormat } from '../im-stream/im-stream-live'
+import type { ImPartLabel } from '../im-stream/im-stream-parts'
+import type { ImProgressFormat } from '../im-stream/im-stream-progress'
 import type { JournalConnectorReplyOutcome } from '../../shared/agent-session/journal/journal-connector-reply'
 import type { ConnectorRefusal } from '../external-conversations/external-conversation-types'
 import type { ConnectorFailure } from '../../shared/connectors/connector-failure-contract'
