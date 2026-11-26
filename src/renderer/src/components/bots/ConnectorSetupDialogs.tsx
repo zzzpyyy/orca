@@ -19,7 +19,7 @@ import { botErrorMessage } from './bot-presentation'
 import { handOffConnectorSetup } from './connector-setup-handoff'
 import type { Bot } from '../../../../shared/bot-types'
 import { googleBotConnectState } from '../../../../shared/google/google-bot-connect-state'
-import { DingTalkSetupDialog } from './apps/BotAppSteps'
+import { BotDingTalkSetup } from './dingtalk/BotDingTalkSetup'
 
 /** Each account connector's own setup, as Add connector opens it; `start` opens one. `workspace`:
  *  the org or workspace asked for, e.g. by a chat card. */
@@ -100,7 +100,7 @@ export function useConnectorSetup(bot: Bot): {
         open={setupOpen === 'google'}
         onOpenChange={(next) => setSetupOpen(next ? 'google' : null)}
       />
-      <DingTalkSetupDialog
+      <BotDingTalkSetup
         bot={bot}
         open={setupOpen === 'dingtalk'}
         onOpenChange={(next) => setSetupOpen(next ? 'dingtalk' : null)}

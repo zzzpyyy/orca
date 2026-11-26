@@ -9,8 +9,9 @@ import { useBotSlack } from '@/lib/bot-slack-state'
 import type { Bot } from '../../../../shared/bot-types'
 import {
   botConnectorEntries as sharedBotConnectorEntries,
-  type BotConnectorEntry
+  type BotConnectorEntry as SharedConnectorEntry
 } from '../../../../shared/bots/bot-connector-entries'
+import type { DingTalkLocalBotState } from '../../../../shared/connectors/dingtalk-local-state'
 import type { BotGitHubView } from '@/lib/bot-github-state'
 import type { BotLinearView } from '@/lib/bot-linear-state'
 import type { BotSlackView } from '@/lib/bot-slack-state'
@@ -24,11 +25,21 @@ import { linearCardFace } from './linear/BotLinearCard'
 import { slackCardFace } from './slack/BotSlackCard'
 import { botConnectorTitleSeparator } from './bot-connector-titles'
 import { translate } from '@/i18n/i18n'
+import { dingTalkProblem } from './dingtalk/BotDingTalkCard'
+import { dingTalkAdded, useDingTalkState } from './dingtalk/dingtalk-local-client'
 
-export type {
-  BotConnectorEntry,
-  ComposioProblem
-} from '../../../../shared/bots/bot-connector-entries'
+export type { ComposioProblem } from '../../../../shared/bots/bot-connector-entries'
+
+/** The shared rows, and DingTalk's, which only a desktop sets up: it runs on the bot's own host. */
+export type BotConnectorEntry =
+  | SharedConnectorEntry
+  | {
+      kind: 'dingtalk'
+      key: string
+      needsOwner: boolean
+      title: SharedConnectorEntry['title']
+      state: DingTalkLocalBotState
+    }
 
 /** What the list is built from: the stores each connector's row reads. */
 export type BotConnectorSources = {
@@ -72,6 +83,7 @@ export function useBotConnectorInventory(
   const google = useGoogleHost(bot ? botTarget(bot) : ownBotHost().target, shown)
   const composio = useComposioBot(bot)
   const { view: tools } = useBotTools(bot, appsCheck)
+  const dingtalk = useDingTalkState(bot)
   // Changes with the UI language, so the translated titles follow a switch.
   const t = useTranslate()
   // The panel header, tab and toggle all read it, so one list per change of its sources.
@@ -92,11 +104,22 @@ export function useBotConnectorInventory(
     if (tools.status !== 'ready') {
       unresolved.push('app')
     }
-    return {
-      entries: botConnectorEntries(bot, { slack, linear, github, google, composio, tools }, t),
-      unresolved
+    const entries: BotConnectorEntry[] = botConnectorEntries(
+      bot,
+      { slack, linear, github, google, composio, tools },
+      t
+    )
+    if (dingtalk && dingTalkAdded(dingtalk)) {
+      entries.push({
+        kind: 'dingtalk',
+        key: 'dingtalk',
+        title: { service: 'DingTalk', name: null },
+        state: dingtalk,
+        needsOwner: dingTalkProblem(dingtalk, t) !== null
+      })
     }
-  }, [bot, slack, linear, github, google, composio, tools, t])
+    return { entries, unresolved }
+  }, [bot, slack, linear, github, google, composio, tools, t, dingtalk])
 }
 
 /** The list itself, from the bot and its sources. */

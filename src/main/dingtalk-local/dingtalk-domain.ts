@@ -1,6 +1,8 @@
 import { createHash } from 'node:crypto'
-import { readFile } from 'node:fs/promises'
+import { chmod, mkdir, readFile, rename, writeFile } from 'node:fs/promises'
+import { dirname } from 'node:path'
 import * as z from 'zod'
+import type { ImStreamRecord } from '../im-stream/im-reply-stream'
 
 const Profile = z
   .string()
@@ -40,21 +42,42 @@ const GroupSetup = z.object({
   requirePrefix: z.boolean().default(true),
   selfNames: z.array(z.string().min(1).max(80)).max(10).default([]),
   selfOpenId: z.string().max(256).default(''),
-  noiseFilter: z.boolean().default(true)
+  noiseFilter: z.boolean().default(true),
+  /** How the setup lists the group; never used to route. */
+  name: z.string().max(80).default('')
+})
+/** One person whose 1:1 messages to the profile's account reach the bot; no one else's do. */
+const DmSetup = z.object({
+  profile: Profile,
+  botId: z.string().min(1).max(128),
+  openDingTalkId: z.string().min(1).max(256),
+  name: z.string().max(80).default(''),
+  /** The bot owner's own account: their turns typed in Orca post back here, as Slack does. */
+  owner: z.boolean().default(false)
 })
 const Setup = z.object({
   enabled: z.boolean().default(false),
   dwsPath: z.string().min(1).default('dws'),
   autoReply: z.boolean().default(false),
-  groups: z.array(GroupSetup).max(200).default([])
+  /** Each IM-started turn's reply opens at once and shows progress until the answer replaces it. */
+  streaming: z.boolean().default(true),
+  groups: z.array(GroupSetup).max(200).default([]),
+  dms: z.array(DmSetup).max(50).default([])
 })
 
 export type DingTalkGroupSetup = z.infer<typeof GroupSetup>
+export type DingTalkDmSetup = z.infer<typeof DmSetup>
 export type DingTalkSetup = z.infer<typeof Setup>
+/** What a message came through, and so who may send one: a group binding or one authorized person. */
+export type DingTalkBinding =
+  | { kind: 'group'; group: DingTalkGroupSetup }
+  | { kind: 'dm'; dm: DingTalkDmSetup }
+export type DingTalkSetupInput = z.input<typeof Setup>
 
 export type DingTalkInbound = {
   profile: DingTalkProfile
-  source: 'at' | 'group'
+  source: 'at' | 'group' | 'dm'
+  /** A DM's DingTalk conversation id; its replies go to `senderOpenId`. */
   groupId: DingTalkGroupId
   conversationId: DingTalkConversationId
   messageId: DingTalkMessageId
@@ -82,6 +105,9 @@ export type InboxRow = {
   deliveryId: DingTalkDeliveryId
   reason: string
   updatedAt: number
+  /** Its media fetched and `body` final: a redelivery sends the same words and images. */
+  prepared?: true
+  images?: string[]
 }
 
 export type ConversationRow = {
@@ -93,6 +119,10 @@ export type ConversationRow = {
   sessionId: string
   latestMessageId: DingTalkMessageId
   updatedAt: number
+  /** Set for a DM: the person its replies go to. */
+  dmOpenId?: string
+  /** The sender or group as the setup names it, for the connector's conversation list. */
+  label?: string
 }
 
 export type ReplyRow = {
@@ -106,6 +136,7 @@ export type ReplyRow = {
   state: ReplyState
   error: string
   updatedAt: number
+  dmOpenId?: string
 }
 
 export type DingTalkLedgerState = {
@@ -114,15 +145,19 @@ export type DingTalkLedgerState = {
   conversations: Record<string, ConversationRow>
   replies: Record<string, ReplyRow>
   watermarks: Record<string, string>
+  /** Each streamed reply's card and how much of its answer landed, by reply key. */
+  streams: Record<string, ImStreamRecord>
 }
 
 export function parseDingTalkSetup(raw: unknown, botIds: readonly string[] = []): DingTalkSetup {
   const setup = Setup.parse(raw)
   const known = new Set(botIds)
-  for (const group of setup.groups) {
-    if (known.size > 0 && !known.has(group.botId)) {
-      throw new Error(`unknown DingTalk bot ${group.botId}`)
+  for (const entry of [...setup.groups, ...setup.dms]) {
+    if (known.size > 0 && !known.has(entry.botId)) {
+      throw new Error(`unknown DingTalk bot ${entry.botId}`)
     }
+  }
+  for (const group of setup.groups) {
     if (group.mode === 'all' && group.requirePrefix) {
       throw new Error(`group ${group.groupId} in all mode must disable requirePrefix`)
     }
@@ -134,6 +169,14 @@ export function parseDingTalkSetup(raw: unknown, botIds: readonly string[] = [])
       throw new Error(`duplicate DingTalk group binding ${group.groupId}`)
     }
     bindings.add(key)
+  }
+  const people = new Set<string>()
+  for (const dm of setup.dms) {
+    const key = `${dm.profile}\u0000${dm.openDingTalkId}`
+    if (people.has(key)) {
+      throw new Error(`duplicate DingTalk DM binding ${dm.openDingTalkId}`)
+    }
+    people.add(key)
   }
   return setup
 }
@@ -151,6 +194,15 @@ export async function readDingTalkSetup(
   })
   const raw: unknown = text === null ? { enabled: false } : JSON.parse(text)
   return parseDingTalkSetup(raw, botIds)
+}
+
+/** Replaces the setup file whole, readable by this user only. */
+export async function writeDingTalkSetup(path: string, setup: DingTalkSetup): Promise<void> {
+  await mkdir(dirname(path), { recursive: true, mode: 0o700 })
+  const temporary = `${path}.${process.pid}.tmp`
+  await writeFile(temporary, `${JSON.stringify(setup, null, 2)}\n`, { mode: 0o600 })
+  await chmod(temporary, 0o600)
+  await rename(temporary, path)
 }
 
 function stable<T extends string>(
@@ -180,8 +232,17 @@ export function stableReplyId(externalId: DingTalkExternalId, turnId: number): D
   return stable('dtr1_', [externalId, String(turnId)], ReplyId.parse)
 }
 
-export function stableSendUuid(replyId: DingTalkReplyId): string {
-  return `dt-local-${createHash('sha256').update(replyId).digest('hex').slice(0, 40)}`
+/** The reply that posts a turn the owner typed in Orca, by the turn's journal record. */
+export function stableOwnTurnReplyId(
+  externalId: DingTalkExternalId,
+  turnItemId: string
+): DingTalkReplyId {
+  return stable('dtr1_', [externalId, 'orca', turnItemId], ReplyId.parse)
+}
+
+/** The dws idempotency key of one message a reply sends, from the reply's or a part's key. */
+export function stableSendUuid(key: string): string {
+  return `dt-local-${createHash('sha256').update(key).digest('hex').slice(0, 40)}`
 }
 
 export const schemas = {

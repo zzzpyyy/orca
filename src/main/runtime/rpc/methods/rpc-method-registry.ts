@@ -96,6 +96,7 @@ import { BOT_TAKE_OVER_METHOD } from './bots-take-over'
 import { BOT_RUN_SEND_AGAIN_METHOD } from './bots-run-send-again'
 import { BOT_ACCESS_METHODS } from './bots-access'
 import { BOT_SLACK_METHODS } from './bots-slack'
+import { BOT_DINGTALK_LOCAL_METHODS } from './bots-dingtalk-local'
 import { BOT_LINEAR_METHODS } from './bots-linear'
 import { BOT_GITHUB_METHODS } from './bots-github'
 import { BOT_CONNECT_METHODS } from './bots-connect'
@@ -169,6 +170,7 @@ const BOT_RPC_METHODS = [
   ...BOT_GROUP_METHODS,
   ...BOT_ACCESS_METHODS,
   ...BOT_SLACK_METHODS,
+  ...BOT_DINGTALK_LOCAL_METHODS,
   ...BOT_LINEAR_METHODS,
   ...BOT_GITHUB_METHODS,
   ...BOT_CONNECT_METHODS,

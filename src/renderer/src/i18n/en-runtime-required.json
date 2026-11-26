@@ -1654,6 +1654,14 @@
       "needYou_one": "{{count}} needs you",
       "needYou_other": "{{count}} need you"
     },
+    "dingtalk": {
+      "groups_one": "{{count}} group",
+      "groups_other": "{{count}} groups",
+      "people_one": "{{count}} person",
+      "people_other": "{{count}} people",
+      "problemReplies_one": "A reply didn’t post. Orca retries on restart.",
+      "problemReplies_other": "{{count}} replies didn’t post. Orca retries on restart."
+    },
     "failures": {
       "attachmentExpired": "{{names}}: this attachment expired. Attach it again.",
       "attachmentTooLarge": "{{name}} is over {{maxMb}} MB.",

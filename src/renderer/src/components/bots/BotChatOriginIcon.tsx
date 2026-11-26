@@ -33,7 +33,7 @@ function useChatKindLabel(origin: BotChatOrigin): string {
     case 'github':
       return t('bots.chats.kindGithub', 'GitHub thread')
     case 'dingtalk':
-      return t('bots.chats.kindDingtalk', 'DingTalk group')
+      return t('bots.chats.kindDingtalk', 'DingTalk chat')
     case 'automation':
       return t('bots.chats.kindAutomation', 'Automation run')
     case 'side':

@@ -1,30 +1,46 @@
+// The local DingTalk connector: dws listeners for each bound group and authorized DM, the inbox that
+// takes their messages into chats, and the replies its turns post back.
 import { join } from 'node:path'
 import type { Bot } from '../../shared/bot-types'
-import type { ConnectorAsker } from '../../shared/connectors/connector-cloud-contract'
+import { watchChatNews } from '../external-conversations/external-conversation-chat'
 import type { ExternalConversationHost } from '../external-conversations/external-conversation-host'
 import type { ExternalConversationSeam } from '../external-conversations/external-conversation-seam'
-import { conversationKey } from './dingtalk-local-conversation'
+import type { ImTurnJournal } from '../im-stream/im-turn-watch'
+import { getAgentSessionAttachmentStore } from '../native-chat/agent-session-attachments/agent-session-attachment-store-registry'
+import { getStructuredAgentSessionHost } from '../native-chat/agent-session-wire/host/structured-agent-session-registry'
 import {
   readDingTalkSetup,
   schemas,
-  type DingTalkGroupSetup,
-  type DingTalkInbound,
-  type DingTalkSetup,
-  type ReplyRow
+  writeDingTalkSetup,
+  type ConversationRow,
+  type DingTalkProfile,
+  type DingTalkSetup
 } from './dingtalk-domain'
-import { decideInbound } from './dingtalk-inbound'
+import { DingTalkInbox } from './dingtalk-inbox-delivery'
 import { DingTalkLedger } from './dingtalk-ledger'
-import { DingTalkTurnDeliveries } from './dingtalk-turns'
-import { recoverDingTalkLedger, replayDingTalkInbox } from './dingtalk-local-recovery'
-import { sendDingTalkReplyIfEnabled } from './dingtalk-local-reply-send'
+import { conversationKey } from './dingtalk-local-conversation'
+import { recoverDingTalkLedger } from './dingtalk-local-recovery'
 import { statusOf, type DingTalkLocalStatus } from './dingtalk-local-status'
-import { DwsBoundary, type DwsConsumer, type DwsEvent } from './dws/dingtalk-dws-boundary'
+import { DingTalkReplies } from './dingtalk-reply-delivery'
+import { DingTalkTurnEnds } from './dingtalk-turn-end'
+import { DingTalkTurnDeliveries } from './dingtalk-turns'
+import {
+  DwsBoundary,
+  type DwsConsumer,
+  type DwsEvent,
+  type DwsSource
+} from './dws/dingtalk-dws-boundary'
+import { dwsVersion } from './dws/dingtalk-dws-directory'
 
 export type DingTalkLocalConnector = {
   start(): Promise<void>
   stop(): Promise<void>
   reload(): Promise<void>
   status(): DingTalkLocalStatus
+  setup(): DingTalkSetup | null
+  /** Writes the setup file whole and starts listening as it says. */
+  saveSetup(setup: DingTalkSetup): Promise<void>
+  dws: Pick<DwsBoundary, 'exec'>
 }
 
 type ConnectorDeps = {
@@ -33,227 +49,118 @@ type ConnectorDeps = {
   seam: () => ExternalConversationSeam | null
   host: () => ExternalConversationHost
   bots: () => readonly Bot[]
+  /** The setup or what it shows changed, for the bots whose page lists it. */
+  changed?: (botIds: readonly string[]) => void
+  journal?: () => ImTurnJournal | null
+  storeFile?: (name: string, bytes: Buffer) => Promise<string>
 }
 
-const defaultConfigPath = (userDataPath: string): string =>
+export const dingTalkConfigPath = (userDataPath: string): string =>
   process.env.DINGTALK_LOCAL_CONFIG?.trim() || join(userDataPath, 'dingtalk-local.json')
 
 const messageOf = (error: unknown): string =>
   error instanceof Error ? error.message : String(error)
 
+async function storeAttachment(name: string, bytes: Buffer): Promise<string> {
+  const store = getAgentSessionAttachmentStore()
+  if (!store) {
+    throw new Error('no attachment store')
+  }
+  return await store.storeFile(name, bytes)
+}
+
+/** The listeners a setup needs: one @-mention listener per account, one per all-message group, one
+ *  per authorized person. */
+function listenersOf(setup: DingTalkSetup): [DingTalkProfile, DwsSource][] {
+  const atProfiles = new Set<DingTalkProfile>()
+  const listeners: [DingTalkProfile, DwsSource][] = []
+  for (const group of setup.groups) {
+    if (group.mode === 'at') {
+      atProfiles.add(group.profile)
+    } else {
+      listeners.push([group.profile, { kind: 'group', groupId: group.groupId }])
+    }
+  }
+  for (const profile of atProfiles) {
+    listeners.push([profile, { kind: 'at' }])
+  }
+  for (const dm of setup.dms) {
+    listeners.push([dm.profile, { kind: 'dm', openDingTalkId: dm.openDingTalkId }])
+  }
+  return listeners
+}
+
 export function installDingTalkLocalConnector(deps: ConnectorDeps): DingTalkLocalConnector {
-  const configPath = deps.configPath ?? defaultConfigPath(deps.userDataPath)
+  const configPath = deps.configPath ?? dingTalkConfigPath(deps.userDataPath)
   const ledger = new DingTalkLedger(join(deps.userDataPath, 'dingtalk-local-ledger.json'))
-  const dws = new DwsBoundary(() => currentSetup?.dwsPath ?? 'dws')
   let currentSetup: DingTalkSetup | null = null
+  const dws = new DwsBoundary(() => currentSetup?.dwsPath ?? 'dws')
   let consumers: DwsConsumer[] = []
   let releaseWatch: (() => void) | null = null
+  let releaseNews: (() => void) | null = null
   let running = false
   // Bumped by stop() so a reload awaiting stopConsumers() does not install consumers afterwards.
   let lifecycle = 0
   let lastError = ''
-  const sending = new Set<string>()
-  const turnDeliveries = new DingTalkTurnDeliveries()
+  let degraded = ''
+  let dwsState: DingTalkLocalStatus['dws'] = null
+  const botIds = (): string[] => deps.bots().map((bot) => bot.id)
+  const changed = (): void => {
+    deps.changed?.(botIds())
+  }
   const recordError = (error: unknown): void => {
-    lastError = messageOf(error)
+    lastError = messageOf(error).slice(0, 300)
+    changed()
   }
-
-  const readSetup = (): Promise<DingTalkSetup> =>
-    readDingTalkSetup(
-      configPath,
-      deps.bots().map((bot) => bot.id)
-    )
-
-  const botFor = (botId: string): Bot => {
-    const bot = deps.bots().find((entry) => entry.id === botId)
-    if (!bot) {
-      throw new Error(`DingTalk bot not found: ${botId}`)
+  const journal = deps.journal ?? (() => getStructuredAgentSessionHost())
+  const sessionOfId = (externalId: string): string | null =>
+    deps.seam()?.linkedChat(conversationKey(schemas.ExternalId.parse(externalId)))?.sessionId ??
+    null
+  const sessionOf = (row: ConversationRow): string | null => sessionOfId(row.externalId)
+  const turns = new DingTalkTurnDeliveries()
+  const replies = new DingTalkReplies({
+    ledger,
+    dws,
+    setup: () => currentSetup,
+    journal,
+    sessionOf,
+    onDegraded: (reason) => {
+      if (degraded !== reason) {
+        degraded = reason
+        changed()
+      }
     }
-    return bot
-  }
-
-  const askerFor = (event: DingTalkInbound, body: string): ConnectorAsker => ({
-    userId: event.senderOpenId,
-    name: event.senderName || undefined,
-    role: 'member',
-    place: { kind: 'group_message', id: event.groupId },
-    text: body,
-    context: [],
-    messageRef: `dingtalk:${event.groupId}:${event.messageId}`
+  })
+  const inbox = new DingTalkInbox({
+    ledger,
+    dws,
+    seam: deps.seam,
+    host: deps.host,
+    bots: deps.bots,
+    setup: () => currentSetup,
+    turns,
+    storeFile: deps.storeFile ?? storeAttachment,
+    onError: recordError,
+    onLinked: changed
+  })
+  const turnEnds = new DingTalkTurnEnds({
+    ledger,
+    setup: () => currentSetup,
+    turns,
+    replies,
+    journal,
+    sessionOf
   })
 
-  const handleInbound = async (event: DingTalkInbound): Promise<void> => {
-    const setup = currentSetup
-    if (!setup?.enabled) {
-      return
-    }
-    const decision = decideInbound(setup, event)
-    if (decision.kind === 'drop') {
-      return
-    }
-    const key = `${event.profile}\u0000${event.messageId}`
-    const inserted = await ledger.putInbox({
-      key,
-      event,
-      externalId: decision.externalId,
-      body: decision.body,
-      state: 'pending',
-      deliveryId: decision.deliveryId,
-      reason: '',
-      updatedAt: Date.now()
-    })
-    if (!inserted) {
-      return
-    }
-    const binding = decision.binding
-    const conversation = decision.externalId
-    await ledger.putConversation({
-      externalId: conversation,
-      profile: event.profile,
-      groupId: event.groupId,
-      conversationId: schemas.ConversationId.parse(event.conversationId),
-      botId: binding.botId,
-      sessionId: '',
-      latestMessageId: event.messageId,
-      updatedAt: Date.now()
-    })
-    await deliverInbox(key, binding, event, decision.body)
-  }
-
-  const deliverInbox = async (
-    inboxKey: string,
-    binding: DingTalkGroupSetup,
-    event: DingTalkInbound,
-    body: string
-  ): Promise<void> => {
-    const row = ledger.snapshot().inbox[inboxKey]
-    if (!row || row.state !== 'pending') {
-      return
-    }
-    // A replay and a live event can race for one pending row; the loser stops here.
-    try {
-      await ledger.transitionInbox(inboxKey, 'pending', 'delivering')
-    } catch (error) {
-      recordError(error)
-      return
-    }
-    const seam = deps.seam()
-    if (!seam) {
-      await ledger.transitionInbox(inboxKey, 'delivering', 'failed', {
-        reason: 'connectors_disabled'
-      })
-      return
-    }
-    const key = conversationKey(row.externalId)
-    const asker = askerFor(event, body)
-    const bot = botFor(binding.botId)
-    try {
-      const linked = seam.linkedChat(key, binding.botId)
-      const result = linked
-        ? await seam.send(deps.host(), key, row.deliveryId, { text: body, asker })
-        : (
-            await seam.start(deps.host(), key, row.deliveryId, {
-              agent: bot.agent,
-              target: { kind: 'bot', botId: binding.botId },
-              prompt: body,
-              asker
-            })
-          ).initial
-      await (result.outcome === 'accepted'
-        ? ledger.transitionInbox(inboxKey, 'delivering', 'delivered')
-        : ledger.transitionInbox(inboxKey, 'delivering', 'failed', { reason: result.reason }))
-    } catch (error) {
-      await ledger.transitionInbox(inboxKey, 'delivering', 'failed', {
-        reason: messageOf(error)
-      })
-    }
-    if (
-      turnDeliveries.landed(inboxKey) &&
-      ledger.snapshot().inbox[inboxKey]?.state === 'delivered'
-    ) {
-      await ledger.transitionInbox(inboxKey, 'delivered', 'attributed')
-    }
-  }
-
-  const handleTurn = async (
-    event: Extract<
-      Parameters<Parameters<ExternalConversationSeam['watch']>[1]>[0],
-      { kind: 'turn-ended' }
-    >
-  ): Promise<void> => {
-    const { externalId } = event.conversation
-    const attribution = turnDeliveries.attribute(ledger.snapshot(), {
-      kind: 'turn-ended',
-      source: event.conversation.source,
-      externalId,
-      turnId: event.turnId,
-      origin: event.origin,
-      lastAssistantMessage: event.lastAssistantMessage
-    })
-    if (attribution.kind !== 'reply') {
-      return
-    }
-    try {
-      // A repeated or concurrent end of the same turn stores no second reply and claims no rows.
-      if (!(await ledger.putReply(attribution.reply))) {
-        return
-      }
-      for (const inboxKey of attribution.inboxKeys) {
-        const state = ledger.snapshot().inbox[inboxKey]?.state
-        if (state === 'delivered') {
-          await ledger.transitionInbox(inboxKey, 'delivered', 'attributed')
-        } else if (state === 'delivering') {
-          turnDeliveries.answerEarly(inboxKey)
-        }
-      }
-    } finally {
-      turnDeliveries.end(externalId, event.turnId)
-    }
-    void sendReplyIfEnabled(attribution.reply)
-  }
-
-  const sendReplyIfEnabled = (reply: ReplyRow): Promise<void> =>
-    sendDingTalkReplyIfEnabled({ ledger, dws, setup: currentSetup, sending }, reply)
+  const readSetup = (): Promise<DingTalkSetup> => readDingTalkSetup(configPath, botIds())
 
   const onEvent = (event: DwsEvent): void => {
     try {
-      void handleInbound({
-        ...event,
-        conversationId: schemas.ConversationId.parse(event.conversationId)
-      }).catch(recordError)
+      void inbox
+        .receive({ ...event, conversationId: schemas.ConversationId.parse(event.conversationId) })
+        .catch(recordError)
     } catch (error) {
       recordError(error)
-    }
-  }
-
-  const reload = async (): Promise<void> => {
-    currentSetup = await readSetup()
-    if (!running) {
-      return
-    }
-    const generation = lifecycle
-    await stopConsumers()
-    if (!running || generation !== lifecycle || !currentSetup.enabled) {
-      return
-    }
-    const byProfile = new Map<DingTalkGroupSetup['profile'], boolean>()
-    for (const group of currentSetup.groups) {
-      if (group.mode === 'at') {
-        byProfile.set(group.profile, true)
-      } else {
-        consumers.push(
-          dws.consume(group.profile, { kind: 'group', groupId: group.groupId }, onEvent)
-        )
-      }
-    }
-    for (const profile of byProfile.keys()) {
-      consumers.push(dws.consume(profile, { kind: 'at' }, onEvent))
-    }
-    const setup = currentSetup
-    if (setup) {
-      replayDingTalkInbox(ledger, setup, async (inboxKey, binding, row) => {
-        await deliverInbox(inboxKey, binding, row.event, row.body).catch(recordError)
-      })
     }
   }
 
@@ -263,7 +170,66 @@ export function installDingTalkLocalConnector(deps: ConnectorDeps): DingTalkLoca
     await Promise.all(active.map((consumer) => consumer.stop()))
   }
 
+  const reload = async (): Promise<void> => {
+    currentSetup = await readSetup()
+    if (!running) {
+      return
+    }
+    const generation = lifecycle
+    await stopConsumers()
+    dwsState = currentSetup.enabled ? await dwsVersion(dws) : null
+    if (!running || generation !== lifecycle || !currentSetup.enabled) {
+      changed()
+      return
+    }
+    // Turns are watched, and the last run's replies finished, only once the setup turns on.
+    if (!releaseWatch) {
+      watch()
+      await recoverDingTalkLedger(ledger, (reply) => replies.send(reply))
+    }
+    for (const [profile, source] of listenersOf(currentSetup)) {
+      consumers.push(dws.consume(profile, source, onEvent))
+    }
+    inbox.replay()
+    changed()
+  }
+
+  const onTurn: Parameters<ExternalConversationSeam['watch']>[1] = (event) => {
+    if (event.kind === 'turn-started') {
+      turnEnds.started(event)
+    } else if (event.kind === 'turn-ended') {
+      void turnEnds.ended(event).catch(recordError)
+    }
+  }
+
+  const watch = (): void => {
+    const seam = deps.seam()
+    if (!seam) {
+      return
+    }
+    turns.watch()
+    const host = deps.host()
+    try {
+      releaseWatch = seam.watch(host, onTurn)
+    } catch (error) {
+      recordError(error)
+      return
+    }
+    releaseNews = host.chat
+      ? watchChatNews(
+          host.chat,
+          (news) => {
+            if (news.kind === 'turn-ended') {
+              void turnEnds.chatTurnEnded(news).catch(recordError)
+            }
+          },
+          'dingtalk-local'
+        )
+      : null
+  }
+
   return {
+    dws,
     start: async () => {
       if (running) {
         return
@@ -275,19 +241,6 @@ export function installDingTalkLocalConnector(deps: ConnectorDeps): DingTalkLoca
         lastError = `DingTalk ledger unreadable, connector not started: ${ledger.readError}`
         throw new Error(lastError)
       }
-      currentSetup = await readSetup()
-      const seam = deps.seam()
-      if (seam) {
-        turnDeliveries.watch()
-        releaseWatch = seam.watch(deps.host(), (event) => {
-          if (event.kind === 'turn-started') {
-            turnDeliveries.start(event.conversation.externalId, event.at, event.deliveryId)
-          } else if (event.kind === 'turn-ended') {
-            void handleTurn(event).catch(recordError)
-          }
-        })
-      }
-      await recoverDingTalkLedger(ledger, currentSetup, sendReplyIfEnabled)
       await reload()
     },
     stop: async () => {
@@ -297,18 +250,30 @@ export function installDingTalkLocalConnector(deps: ConnectorDeps): DingTalkLoca
       running = false
       lifecycle += 1
       releaseWatch?.()
+      releaseNews?.()
       releaseWatch = null
+      releaseNews = null
       await stopConsumers()
+      await replies.stop()
       await dws.close()
     },
     reload,
+    setup: () => currentSetup,
+    saveSetup: async (setup) => {
+      await writeDingTalkSetup(configPath, setup)
+      await reload()
+    },
     status: () =>
       statusOf({
         setup: currentSetup,
         configPath,
+        dws: dwsState,
         consumerCount: consumers.length,
+        consumerErrors: [...dws.consumerErrors.values()],
         ledger: ledger.snapshot(),
-        lastError
+        degraded,
+        lastError,
+        sessionOf: sessionOfId
       })
   }
 }

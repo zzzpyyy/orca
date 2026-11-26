@@ -35,7 +35,7 @@ export function connectorDescription(id: BotConnectorId): string {
     case 'dingtalk':
       return translate(
         'bots.connectors.dingtalk',
-        'Chat with the bot from selected DingTalk groups on this computer.'
+        'Chat with the bot from DingTalk direct messages and groups you pick, through dws on its computer.'
       )
     case 'google':
       return translate(

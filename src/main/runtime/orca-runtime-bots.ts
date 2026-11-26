@@ -20,6 +20,7 @@ import { botsRootFolder, localBotHomeFilesystem } from '../bots/bot-home'
 import { journaledItemsNotice } from '../bots/bot-memory-journal-runtime'
 import { BotSharePicksStore } from '../bots/sharing/bot-share-picks-store'
 import { BotShareCandidates } from '../bots/sharing/bot-package-export'
+import type { DingTalkLocalConnector } from '../dingtalk-local/dingtalk-local-connector'
 import type { BotShareClient } from '../bots/sharing/bot-share-client'
 import type { BotShareDownloadPolicy } from '../bots/sharing/bot-share-receive'
 import { BotShareService } from '../bots/sharing/bot-share-service'
@@ -60,6 +61,8 @@ export abstract class OrcaRuntimeWithBots extends OrcaRuntimeWithLinearCommands 
   botAccessWatch: Pick<BotAccessRequestWatch, 'list' | 'answered'> | null = null
   /** The host's GitHub orgs as its connector says them; null on a host without a connector. */
   connectorGitHubInstallations: Pick<ConnectorGitHubInstallations, 'track'> | null = null
+  /** The local DingTalk connector, once the connector host installs it. */
+  dingtalkLocal: DingTalkLocalConnector | null = null
 
   private readonly botWriteListeners = new Set<() => void>()
 

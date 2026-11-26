@@ -178,6 +178,11 @@ import {
   ConnectorConnectStart,
   ConnectorConnectWait
 } from './bots-connector-setup-params'
+import {
+  DingTalkLocalBot,
+  DingTalkLocalSave,
+  DingTalkLocalSearch
+} from './bots-dingtalk-local-params'
 import { BotImportDoneCard, BotImportPlanCard, BotImportSources } from './bots-import-params'
 import {
   BotItemsAdd,
@@ -1315,6 +1320,12 @@ export const RPC_PARAMS_BY_METHOD = {
   'bots.create': BotCreate,
   'bots.createOffer': BotCreateOfferRequest,
   'bots.delete': BotDelete,
+  'bots.dingtalkLocal.profiles': null,
+  'bots.dingtalkLocal.remove': DingTalkLocalBot,
+  'bots.dingtalkLocal.save': DingTalkLocalSave,
+  'bots.dingtalkLocal.searchGroups': DingTalkLocalSearch,
+  'bots.dingtalkLocal.searchPeople': DingTalkLocalSearch,
+  'bots.dingtalkLocal.state': DingTalkLocalBot,
   'bots.github.setDefaultBot': BotGitHubDefaultBot,
   'bots.github.state': null,
   'bots.github.unlink': BotGitHubUnlink,

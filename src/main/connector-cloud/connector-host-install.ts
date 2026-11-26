@@ -1,5 +1,6 @@
 // The connector and what moves with it, on any host: the desktop app, Electron `orca serve` and orcad.
 import { BotAvatarSync } from './bot-avatar-sync'
+import { installDingTalkLocal } from '../dingtalk-local/dingtalk-local-install'
 import { withBotsCloudClient } from './bots-cloud-client'
 import { createConnectorCloud } from './connector-cloud-install'
 import { ConnectorGitHubInstallations } from './connector-github-installations'
@@ -177,7 +178,7 @@ export function installConnectorHost({
   })
   runtime.botAccessWatch = accessWatch
   runtime.connectorGitHubInstallations = gitHubInstallations
-  stops.push(accessWatch.start())
+  stops.push(accessWatch.start(), installDingTalkLocal(runtime, store, userDataPath))
   // Connect Linear's login lasts a day: refresh it after startup's rush, and on wake where the host says.
   const refreshLinearLogins = () => {
     refreshDueLinearLogins().catch((error: unknown) =>

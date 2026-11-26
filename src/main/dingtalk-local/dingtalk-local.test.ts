@@ -226,7 +226,8 @@ describe('DingTalk turn deliveries', () => {
       inbox: Object.fromEntries(rows.map((row) => [row.key, row])),
       conversations: { [externalId]: conversation },
       replies: {},
-      watermarks: {}
+      watermarks: {},
+      streams: {}
     }
   }
   const second: InboxRow = {
@@ -240,7 +241,7 @@ describe('DingTalk turn deliveries', () => {
   it('keeps a repeated end of a named turn on its own row until its reply is stored', () => {
     const turns = new DingTalkTurnDeliveries()
     turns.watch(100)
-    turns.start(externalId, 7, second.deliveryId)
+    turns.start(externalId, 7, second.deliveryId, 'pane-1')
     const state = stateWith({ ...inbox('delivered'), updatedAt: 150 }, second)
     const first = turns.attribute(state, ended)
     const repeated = turns.attribute(state, ended)
@@ -256,9 +257,48 @@ describe('DingTalk turn deliveries', () => {
       key: 'inbox-3',
       deliveryId: stableDeliveryId(profile, schemas.MessageId.parse('message-3'))
     }
-    turns.start(externalId, 9, third.deliveryId)
+    turns.start(externalId, 9, third.deliveryId, 'pane-1')
     const swept = turns.attribute(stateWith(inbox('delivered'), second, third), ended)
     expect(swept.kind === 'reply' && swept.inboxKeys).toEqual(['inbox-2'])
+  })
+
+  it('answers a turn restarted mid-turn in the turn that replaced it, unless its end came first', () => {
+    const first = { ...inbox('delivered'), updatedAt: 150 }
+    const state = stateWith(first, second)
+    const begin = (turns: DingTalkTurnDeliveries, paneKey = 'pane-1') => {
+      turns.watch(100)
+      turns.start(externalId, 5, first.deliveryId, 'pane-1')
+      return () => turns.start(externalId, 7, second.deliveryId, paneKey)
+    }
+
+    const restarted = new DingTalkTurnDeliveries()
+    expect(begin(restarted)()).toBe(5)
+    const merged = restarted.attribute(state, ended)
+    expect(merged.kind === 'reply' && merged.inboxKeys).toEqual(['inbox-1', 'inbox-2'])
+    expect(merged.kind === 'reply' && merged.reply.text).toBe(
+      '（这条回复合并回答了 2 条消息：「inspect」「inspect」）\n\ndone'
+    )
+    expect(restarted.takeReplaced(externalId, 7)).toEqual([5])
+
+    const queued = new DingTalkTurnDeliveries()
+    const next = begin(queued)
+    queued.ending(externalId, 5)
+    next()
+    const own = queued.attribute(state, ended)
+    expect(own.kind === 'reply' && own.inboxKeys).toEqual(['inbox-2'])
+    expect(queued.takeReplaced(externalId, 7)).toEqual([])
+
+    const late = new DingTalkTurnDeliveries()
+    begin(late)()
+    const lateEnd = late.attribute(state, { ...ended, turnId: 5 })
+    const after = late.attribute(state, ended)
+    expect(lateEnd.kind === 'reply' && lateEnd.inboxKeys).toEqual(['inbox-1'])
+    expect(after.kind === 'reply' && after.inboxKeys).toEqual(['inbox-2'])
+
+    const newChat = new DingTalkTurnDeliveries()
+    expect(begin(newChat, 'pane-2')()).toBeNull()
+    const fresh = newChat.attribute(state, ended)
+    expect(fresh.kind === 'reply' && fresh.inboxKeys).toEqual(['inbox-2'])
   })
 })
 

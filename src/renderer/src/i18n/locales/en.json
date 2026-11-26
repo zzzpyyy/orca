@@ -25315,8 +25315,7 @@
     "cancel": "Cancel",
     "unassigned": "Unassigned",
     "copy": "Copy",
-    "delete": "Delete",
-    "done": "Done"
+    "delete": "Delete"
   },
   "terminal": {
     "recentImages": {
@@ -28116,7 +28115,7 @@
       "add": "Add",
       "needYou_one": "{{count}} needs you",
       "needYou_other": "{{count}} need you",
-      "dingtalk": "Chat with the bot from selected DingTalk groups on this computer."
+      "dingtalk": "Chat with the bot from DingTalk direct messages and groups you pick, through dws on its computer."
     },
     "files": {
       "tab": "Files"
@@ -30057,7 +30056,7 @@
         "zapier": "Run actions in the apps you set up in Zapier",
         "granola": "Search meeting notes and transcripts",
         "intercom": "Search conversations, contacts and articles",
-        "dingtalk": "Messages and mentions from DingTalk groups"
+        "dingtalk": "Direct messages and group mentions"
       },
       "mcp": {
         "adding": "Adding {{app}}…",
@@ -30374,7 +30373,7 @@
       "actions": "Chat actions",
       "needsYouCount": "{{count}} needs you",
       "hideOlder": "Hide older",
-      "kindDingtalk": "DingTalk group"
+      "kindDingtalk": "DingTalk chat"
     },
     "cloudSignIn": {
       "automationScheduledOnly": "Runs on its schedule only: its events are paused while signed out of Orca",
@@ -30904,9 +30903,74 @@
       }
     },
     "dingtalk": {
-      "connect": "Connect DingTalk",
-      "description": "Use the local DingTalk connector to let {{bot}} receive selected group messages on this computer.",
-      "localOnly": "The connector runs locally and uses your existing dws login. Add each group to dingtalk-local.json in the Orca profile data directory, set its botId to {{botId}}, then restart Orca."
+      "problemDws": "dws isn’t running: {{reason}}",
+      "problemListener": "A listener stopped: {{reason}}",
+      "problemReplies_one": "A reply didn’t post. Orca retries on restart.",
+      "problemReplies_other": "{{count}} replies didn’t post. Orca retries on restart.",
+      "problemDegraded": "Live progress is off for now, so DingTalk gets a notice and then the answer: {{reason}}",
+      "removeTitle": "Remove DingTalk from {{name}}?",
+      "removeNote": "DingTalk messages stop reaching {{name}}. Its chats stay in Orca, and dws stays signed in.",
+      "removeConfirm": "Remove",
+      "name": "DingTalk",
+      "needsLook": "Needs a look",
+      "openSetup": "Open setup",
+      "editSetup": "Edit people and groups",
+      "remove": "Remove DingTalk…",
+      "reachLabel": "Answers",
+      "dwsLabel": "dws",
+      "listening": "{{version}}, {{count}} listening",
+      "notRunning": "Not running",
+      "repliesLabel": "Replies",
+      "repliesOff": "Stay in Orca",
+      "repliesLive": "Posted with live progress",
+      "repliesFinal": "Posted when done",
+      "conversations": "Conversations",
+      "noConversations": "None yet. The first message starts one.",
+      "kindDm": "Direct message",
+      "kindGroup": "Group",
+      "openConversation": "Open conversation",
+      "chatGone": "Next message starts a new chat",
+      "onHost": "on {{host}}",
+      "onThisComputer": "on this computer",
+      "setupTitle": "DingTalk for {{bot}}",
+      "setupLine": "Messages reach {{bot}} through dws, DingTalk’s command line, signed in to your own account {{where}}.",
+      "hostError": "Couldn’t read the DingTalk setup on the bot’s computer.",
+      "account": "DingTalk account",
+      "noAccount": "No account signed in",
+      "checking": "Checking dws…",
+      "refreshAccounts": "Check dws again",
+      "dwsMissing": "dws isn’t installed {{where}}. Install the official release, then check again.",
+      "getDws": "Get dws",
+      "signIn": "Sign in to dws {{where}} with this command, then check again. dws keeps the sign-in; Orca never sees it.",
+      "copyCommand": "Copy command",
+      "autoReply": "Reply in DingTalk",
+      "autoReplyNote": "Each answer is posted back where it was asked. Off, answers stay in Orca.",
+      "streaming": "Show progress while it works",
+      "streamingNote": "A card shows the steps and is replaced by the answer. Off, only the answer is posted. Both settings hold for every bot using DingTalk {{where}}.",
+      "saving": "Saving…",
+      "save": "Save",
+      "search": "Search",
+      "noMatches": "No matches",
+      "added": "Added",
+      "add": "Add",
+      "people": "Direct messages",
+      "peopleNote": "Only the people listed here can message {{bot}} one to one. Mark yourself so your messages count as yours and what you type in Orca is posted back to you.",
+      "removeEntry": "Remove {{name}}",
+      "thisIsMe": "This is me",
+      "addPerson": "Add a person",
+      "personPlaceholder": "Name or phone number",
+      "modeAll": "Every message",
+      "modeAtPrefix": "@mention with {{prefix}}",
+      "modeAt": "@mention",
+      "groups": "Groups",
+      "groupsNote": "In these groups, anyone can ask {{bot}} as the group setting says.",
+      "groupMode": "When {{name}} reaches the bot",
+      "addGroup": "Add a group",
+      "groupPlaceholder": "Group name",
+      "people_one": "{{count}} person",
+      "people_other": "{{count}} people",
+      "groups_one": "{{count}} group",
+      "groups_other": "{{count}} groups"
     }
   },
   "plugins": {

@@ -1,6 +1,7 @@
 import { chmod, mkdir, readFile, rename, writeFile } from 'node:fs/promises'
 import { dirname } from 'node:path'
 import * as z from 'zod'
+import type { ImStreamRecord } from '../im-stream/im-reply-stream'
 import {
   schemas,
   type ConversationRow,
@@ -13,7 +14,7 @@ import {
 
 const Inbound = z.object({
   profile: schemas.Profile,
-  source: z.enum(['at', 'group']),
+  source: z.enum(['at', 'group', 'dm']),
   groupId: schemas.GroupId,
   conversationId: schemas.ConversationId,
   messageId: schemas.MessageId,
@@ -30,7 +31,9 @@ const InboxRowSchema = z.object({
   state: z.enum(['pending', 'delivering', 'delivered', 'attributed', 'filtered', 'failed']),
   deliveryId: schemas.DeliveryId,
   reason: z.string(),
-  updatedAt: z.number()
+  updatedAt: z.number(),
+  prepared: z.literal(true).optional(),
+  images: z.array(z.string()).max(8).optional()
 })
 const ConversationRowSchema = z.object({
   externalId: schemas.ExternalId,
@@ -40,7 +43,9 @@ const ConversationRowSchema = z.object({
   botId: z.string().min(1),
   sessionId: z.string(),
   latestMessageId: schemas.MessageId,
-  updatedAt: z.number()
+  updatedAt: z.number(),
+  dmOpenId: z.string().min(1).optional(),
+  label: z.string().optional()
 })
 const ReplyRowSchema = z.object({
   key: schemas.ReplyId,
@@ -52,6 +57,16 @@ const ReplyRowSchema = z.object({
   turnId: z.number(),
   state: z.enum(['queued', 'sending', 'sent', 'uncertain', 'failed']),
   error: z.string(),
+  updatedAt: z.number(),
+  dmOpenId: z.string().min(1).optional()
+})
+const StreamRecordSchema = z.object({
+  state: z.enum(['opening', 'open', 'fallback', 'finishing', 'done']),
+  handle: z.string().optional(),
+  error: z.string().optional(),
+  noticeSent: z.literal(true).optional(),
+  partsSent: z.number().int().nonnegative().optional(),
+  cardRefused: z.literal(true).optional(),
   updatedAt: z.number()
 })
 const Ledger = z.object({
@@ -59,7 +74,9 @@ const Ledger = z.object({
   inbox: z.record(z.string(), InboxRowSchema),
   conversations: z.record(z.string(), ConversationRowSchema),
   replies: z.record(z.string(), ReplyRowSchema),
-  watermarks: z.record(z.string(), z.string())
+  watermarks: z.record(z.string(), z.string()),
+  // Absent from a ledger written before streaming.
+  streams: z.record(z.string(), StreamRecordSchema).default({})
 }) satisfies z.ZodType<DingTalkLedgerState>
 
 const empty = (): DingTalkLedgerState => ({
@@ -67,7 +84,8 @@ const empty = (): DingTalkLedgerState => ({
   inbox: {},
   conversations: {},
   replies: {},
-  watermarks: {}
+  watermarks: {},
+  streams: {}
 })
 
 export type LedgerSnapshot = Readonly<DingTalkLedgerState>
@@ -166,6 +184,31 @@ export class DingTalkLedger {
       next.replies[key] = updated
       return { result: updated, write: true }
     })
+  }
+
+  /** Merges `patch` into an inbox row in whatever state it is. */
+  patchInbox(key: string, patch: Partial<Omit<InboxRow, 'key' | 'state'>>): Promise<void> {
+    return this.commit((next) => {
+      const row = next.inbox[key]
+      if (!row) {
+        throw new Error(`inbox row not found ${key}`)
+      }
+      next.inbox[key] = { ...row, ...patch, updatedAt: Date.now() }
+      return { result: undefined, write: true }
+    })
+  }
+
+  putStream(key: string, record: ImStreamRecord): Promise<void> {
+    return this.commit((next) => {
+      next.streams[key] = record
+      return { result: undefined, write: true }
+    })
+  }
+
+  /** The stream record as last written; no copy, so a stream reads it on every step. */
+  stream(key: string): ImStreamRecord | undefined {
+    const record = this.state.streams[key]
+    return record ? { ...record } : undefined
   }
 
   setWatermark(key: string, value: string): Promise<void> {

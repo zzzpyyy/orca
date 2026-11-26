@@ -58,7 +58,8 @@ export type SlackMirrorTurn = { release: (event: ConversationTurnEnd) => void }
 
 const STATUS_TTL_MS = 5 * 60_000
 
-function isPersonsMessage(body: AgentJournalMessageItem): boolean {
+/** Words a person typed in Orca: no mail, connector delivery, automation or command. */
+export function isPersonsMessage(body: AgentJournalMessageItem): boolean {
   return body.role === 'user' && !body.from && !body.origin && !body.command
 }
 

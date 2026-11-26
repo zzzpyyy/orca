@@ -19,6 +19,7 @@ import { BotGoogleCard } from '@/components/bots/google/BotGoogleCard'
 import { BotLinearCard } from '@/components/bots/linear/BotLinearCard'
 import { BotSlackCard } from '@/components/bots/slack/BotSlackCard'
 import { BotWebhooksCard } from '@/components/bots/webhooks/BotWebhooksCard'
+import { BotDingTalkCard } from '@/components/bots/dingtalk/BotDingTalkCard'
 import { BotCloudSignInNotice } from '@/components/bots/BotCloudSignInNotice'
 import { BotConnectorsHostNotice } from '@/components/bots/BotConnectorsHostNotice'
 import {
@@ -66,6 +67,8 @@ function BotConnectorEntryCard({
       return <BotGoogleCard bot={bot} title={title} />
     case 'webhooks':
       return <BotWebhooksCard bot={bot} title={title} />
+    case 'dingtalk':
+      return <BotDingTalkCard bot={bot} state={entry.state} title={title} />
     case 'composio':
       return (
         <BotComposioAppRow

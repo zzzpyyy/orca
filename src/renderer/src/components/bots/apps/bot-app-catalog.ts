@@ -92,7 +92,7 @@ export function directAppLine(app: BotDirectApp): string {
     case 'google':
       return translate('bots.apps.line.google', 'Gmail, Calendar and Drive, as you')
     case 'dingtalk':
-      return translate('bots.apps.line.dingtalk', 'Messages and mentions from DingTalk groups')
+      return translate('bots.apps.line.dingtalk', 'Direct messages and group mentions')
   }
 }
 
