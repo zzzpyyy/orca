@@ -6,12 +6,12 @@ import { isTextBlock } from '../../shared/native-chat/native-chat-types'
 import type { ChatNews } from '../external-conversations/external-conversation-chat'
 import type { ConversationEvent } from '../external-conversations/external-conversation-events'
 import { isPersonsMessage } from '../external-conversations/slack-mirror'
+import type { ImJournal } from '../im-stream/im-stream-follow'
 import {
   imEndedTurnItemId,
   imJoinedMessageRefs,
-  readImTurnItems,
-  type ImTurnJournal
-} from '../im-stream/im-turn-watch'
+  readImTurnItems
+} from '../im-stream/im-stream-turn-watch'
 import {
   stableOwnTurnReplyId,
   stableReplyId,
@@ -34,7 +34,7 @@ export type DingTalkTurnEndDeps = {
   setup: () => DingTalkSetup | null
   turns: DingTalkTurnDeliveries
   replies: DingTalkReplies
-  journal: () => ImTurnJournal | null
+  journal: () => ImJournal | null
   /** The chat a conversation is linked to now. */
   sessionOf: (row: ConversationRow) => string | null
 }

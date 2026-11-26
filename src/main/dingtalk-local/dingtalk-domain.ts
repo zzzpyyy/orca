@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto'
 import { chmod, mkdir, readFile, rename, writeFile } from 'node:fs/promises'
 import { dirname } from 'node:path'
 import * as z from 'zod'
-import type { ImStreamRecord } from '../im-stream/im-reply-stream'
+import type { ImStreamRecord } from '../im-stream/im-stream-reply'
 
 const Profile = z
   .string()

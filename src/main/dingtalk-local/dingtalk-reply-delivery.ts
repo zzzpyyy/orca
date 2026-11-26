@@ -2,9 +2,10 @@
 // follows it, then the answer in it and in continuation messages; or, with streaming off, no card
 // or a refused one, the answer as messages. Each part has its own dws uuid and the ledger records
 // how many landed, so a retry or a restart sends the rest and never a part twice.
-import { ImReplyStream, type ImStreamPhase, type ImStreamPort } from '../im-stream/im-reply-stream'
-import { imAnswerText } from '../im-stream/im-turn-view'
-import { watchImTurn, type ImTurnJournal, type ImTurnWatch } from '../im-stream/im-turn-watch'
+import type { ImJournal } from '../im-stream/im-stream-follow'
+import { imAnswerText } from '../im-stream/im-stream-mask'
+import { ImReplyStream, type ImStreamPhase, type ImStreamPort } from '../im-stream/im-stream-reply'
+import { watchImTurn, type ImTurnWatch } from '../im-stream/im-stream-turn-watch'
 import {
   stableReplyId,
   stableSendUuid,
@@ -14,6 +15,7 @@ import {
   type ReplyRow
 } from './dingtalk-domain'
 import type { DingTalkLedger } from './dingtalk-ledger'
+import { DINGTALK_REPLY_COPY } from './dingtalk-reply-copy'
 import type { DwsBoundary } from './dws/dingtalk-dws-boundary'
 import {
   openDwsCard,
@@ -53,7 +55,7 @@ export type DingTalkRepliesDeps = {
   ledger: DingTalkLedger
   dws: Pick<DwsBoundary, 'exec'>
   setup: () => DingTalkSetup | null
-  journal: () => ImTurnJournal | null
+  journal: () => ImJournal | null
   /** The chat a conversation is linked to now. */
   sessionOf: (row: ConversationRow) => string | null
   /** Why a reply lost its card or could not be sent; for the connector's status. */
@@ -75,6 +77,8 @@ export class DingTalkReplies {
   private port(profile: DingTalkProfile, target: DwsTarget, card: boolean): ImStreamPort {
     const { dws } = this.deps
     return {
+      // Each part's dws uuid derives from its key, and dws takes a resend under it as the same message.
+      guarantee: 'exactly-once',
       ...(card
         ? { open: (placeholder: string) => openDwsCard(dws, profile, target, placeholder) }
         : {}),
@@ -96,7 +100,8 @@ export class DingTalkReplies {
         write: (record) => this.deps.ledger.putStream(key, record)
       },
       key,
-      maxChars: DINGTALK_REPLY_CHARS,
+      limit: { maxChars: DINGTALK_REPLY_CHARS },
+      copy: DINGTALK_REPLY_COPY,
       onDegraded: this.deps.onDegraded
     })
   }

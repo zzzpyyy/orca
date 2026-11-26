@@ -5,7 +5,7 @@ import type { Bot } from '../../shared/bot-types'
 import { watchChatNews } from '../external-conversations/external-conversation-chat'
 import type { ExternalConversationHost } from '../external-conversations/external-conversation-host'
 import type { ExternalConversationSeam } from '../external-conversations/external-conversation-seam'
-import type { ImTurnJournal } from '../im-stream/im-turn-watch'
+import type { ImJournal } from '../im-stream/im-stream-follow'
 import { getAgentSessionAttachmentStore } from '../native-chat/agent-session-attachments/agent-session-attachment-store-registry'
 import { getStructuredAgentSessionHost } from '../native-chat/agent-session-wire/host/structured-agent-session-registry'
 import {
@@ -51,7 +51,7 @@ type ConnectorDeps = {
   bots: () => readonly Bot[]
   /** The setup or what it shows changed, for the bots whose page lists it. */
   changed?: (botIds: readonly string[]) => void
-  journal?: () => ImTurnJournal | null
+  journal?: () => ImJournal | null
   storeFile?: (name: string, bytes: Buffer) => Promise<string>
 }
 

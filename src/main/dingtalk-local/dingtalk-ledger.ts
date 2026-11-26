@@ -1,7 +1,7 @@
 import { chmod, mkdir, readFile, rename, writeFile } from 'node:fs/promises'
 import { dirname } from 'node:path'
 import * as z from 'zod'
-import type { ImStreamRecord } from '../im-stream/im-reply-stream'
+import type { ImStreamRecord } from '../im-stream/im-stream-reply'
 import {
   schemas,
   type ConversationRow,
@@ -66,6 +66,8 @@ const StreamRecordSchema = z.object({
   error: z.string().optional(),
   noticeSent: z.literal(true).optional(),
   partsSent: z.number().int().nonnegative().optional(),
+  partSending: z.number().int().nonnegative().optional(),
+  unconfirmed: z.array(z.number().int().nonnegative()).optional(),
   cardRefused: z.literal(true).optional(),
   updatedAt: z.number()
 })
